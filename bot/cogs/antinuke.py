@@ -514,6 +514,26 @@ class AntiNuke(commands.Cog):
         """Restore a deleted channel from backup"""
         try:
             channel_type = backup.get('type', 'text')
+            channel_name = backup.get('name', '')
+
+            # CHECK IF CHANNEL ALREADY EXISTS - PREVENT DUPLICATES
+            existing_channel = None
+            if 'text' in channel_type:
+                existing_channel = discord.utils.get(guild.text_channels, name=channel_name)
+            elif 'voice' in channel_type:
+                existing_channel = discord.utils.get(guild.voice_channels, name=channel_name)
+            elif 'category' in channel_type:
+                existing_channel = discord.utils.get(guild.categories, name=channel_name)
+            elif 'stage' in channel_type:
+                existing_channel = discord.utils.get(guild.stage_channels, name=channel_name)
+
+            if existing_channel:
+                logger.info(f"⏭️ Skipped restore - channel #{channel_name} already exists")
+                # Update caches with existing channel
+                self.known_channels[guild.id].add(existing_channel.id)
+                self.channel_names[guild.id][existing_channel.id] = existing_channel.name
+                return existing_channel
+
             category = None
 
             # Get category if exists
@@ -711,6 +731,9 @@ class AntiNuke(commands.Cog):
 
         logger.critical(f"🔄 MASS RESTORE: Restoring {len(deleted_backups)} channels in {guild.name}")
 
+        # Get current channel names to avoid duplicates
+        current_channel_names = {c.name.lower() for c in guild.channels}
+
         # Restore categories FIRST (they need to exist for child channels)
         categories_to_restore = [
             (ch_id, backup) for ch_id, backup in deleted_backups.items()
@@ -726,6 +749,10 @@ class AntiNuke(commands.Cog):
         # Restore categories first
         category_id_map = {}  # Old ID -> New ID mapping
         for ch_id, backup in categories_to_restore:
+            # Skip if channel already exists
+            if backup['name'].lower() in current_channel_names:
+                logger.info(f"⏭️ Skipped - #{backup['name']} already exists")
+                continue
             try:
                 new_channel = await self._restore_channel(guild, backup)
                 if new_channel:
@@ -741,6 +768,10 @@ class AntiNuke(commands.Cog):
 
         # Restore other channels with updated category IDs
         for ch_id, backup in other_channels_to_restore:
+            # Skip if channel already exists
+            if backup['name'].lower() in current_channel_names:
+                logger.info(f"⏭️ Skipped - #{backup['name']} already exists")
+                continue
             try:
                 # Update category_id if the category was also restored
                 if backup.get('category_id') in category_id_map:
