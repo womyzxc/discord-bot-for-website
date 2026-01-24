@@ -1442,7 +1442,7 @@ class AntiNuke(commands.Cog):
 
         # FIXED: Skip application/interaction webhooks from other bots
         # These are used by bots for buttons, select menus, slash commands, etc.
-        if message.interaction is not None:
+        if message.interaction_metadata is not None:
             return
 
         # FIXED: Skip if the message has application_id (it's from an app/bot)
