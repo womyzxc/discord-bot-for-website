@@ -260,8 +260,19 @@ class Moderation(commands.Cog):
                 embed.description += f"\n› Reason: `{reason}`"
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'ban', ctx.author, member, reason)
-        except discord.Forbidden:
-            embed = discord.Embed(description="✖️ Cannot ban this user (check bot permissions)", color=EMBED_COLOR)
+        except discord.Forbidden as e:
+            bot_role_pos = ctx.guild.me.top_role.position
+            target_role_pos = member.top_role.position
+            embed = discord.Embed(
+                description=f"✖️ Cannot ban {member.mention}\n"
+                           f"› Bot role position: `{bot_role_pos}` ({ctx.guild.me.top_role.name})\n"
+                           f"› Target role position: `{target_role_pos}` ({member.top_role.name})\n"
+                           f"› Error: `{e}`",
+                color=EMBED_COLOR
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            embed = discord.Embed(description=f"✖️ Error: `{type(e).__name__}: {e}`", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(name='unban')
@@ -429,8 +440,19 @@ class Moderation(commands.Cog):
                 embed.description += f"\n› Reason: `{reason}`"
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'kick', ctx.author, member, reason)
-        except discord.Forbidden:
-            embed = discord.Embed(description="✖️ Cannot kick this user (check bot permissions)", color=EMBED_COLOR)
+        except discord.Forbidden as e:
+            bot_role_pos = ctx.guild.me.top_role.position
+            target_role_pos = member.top_role.position
+            embed = discord.Embed(
+                description=f"✖️ Cannot kick {member.mention}\n"
+                           f"› Bot role position: `{bot_role_pos}` ({ctx.guild.me.top_role.name})\n"
+                           f"› Target role position: `{target_role_pos}` ({member.top_role.name})\n"
+                           f"› Error: `{e}`",
+                color=EMBED_COLOR
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            embed = discord.Embed(description=f"✖️ Error: `{type(e).__name__}: {e}`", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     # ==================== MUTE/TIMEOUT COMMANDS ====================
@@ -491,8 +513,20 @@ class Moderation(commands.Cog):
                 embed.description += f"\n› Reason: `{reason}`"
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'mute', ctx.author, member, reason, duration_display)
-        except discord.Forbidden:
-            embed = discord.Embed(description="✖️ Cannot mute this user (check bot permissions)", color=EMBED_COLOR)
+        except discord.Forbidden as e:
+            # Get role positions for debugging
+            bot_role_pos = ctx.guild.me.top_role.position
+            target_role_pos = member.top_role.position
+            embed = discord.Embed(
+                description=f"✖️ Cannot mute {member.mention}\n"
+                           f"› Bot role position: `{bot_role_pos}` ({ctx.guild.me.top_role.name})\n"
+                           f"› Target role position: `{target_role_pos}` ({member.top_role.name})\n"
+                           f"› Error: `{e}`",
+                color=EMBED_COLOR
+            )
+            await ctx.send(embed=embed)
+        except Exception as e:
+            embed = discord.Embed(description=f"✖️ Error: `{type(e).__name__}: {e}`", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(name='unmute', aliases=['untimeout'])
