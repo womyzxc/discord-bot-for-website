@@ -36,6 +36,9 @@ class Mirror(commands.Cog):
         # Track which guilds set up each mirror (for permission checks)
         self.mirror_owners: Dict[int, int] = {}  # source_channel_id -> guild_id that created it
 
+        # Track if we've loaded from database
+        self._loaded = False
+
         # Owner IDs from environment
         self.owner_ids: Set[int] = set()
         for oid in os.getenv('OWNER_IDS', '').split(','):
@@ -53,6 +56,61 @@ class Mirror(commands.Cog):
         if self.bot.owner_ids and user_id in self.bot.owner_ids:
             return True
         return False
+
+    # ==================== DATABASE METHODS ====================
+
+    async def preload_all_settings(self):
+        """Load all mirrors from database on startup"""
+        if not self.db or self._loaded:
+            return
+
+        try:
+            # Get mirror settings from database
+            mirror_data = await self.db.get_bot_setting('mirrors')
+            if mirror_data and isinstance(mirror_data, dict):
+                # Load mirrors
+                mirrors_dict = mirror_data.get('mirrors', {})
+                for source_id_str, destinations in mirrors_dict.items():
+                    try:
+                        source_id = int(source_id_str)
+                        self.mirrors[source_id] = [int(d) for d in destinations]
+                    except:
+                        pass
+
+                # Load mirror owners
+                owners_dict = mirror_data.get('owners', {})
+                for source_id_str, guild_id in owners_dict.items():
+                    try:
+                        self.mirror_owners[int(source_id_str)] = int(guild_id)
+                    except:
+                        pass
+
+                total_mirrors = sum(len(d) for d in self.mirrors.values())
+                logger.info(f"Loaded {total_mirrors} mirrors from database")
+
+            self._loaded = True
+        except Exception as e:
+            logger.warning(f"Failed to load mirrors from database: {e}")
+
+    async def save_mirrors_to_db(self):
+        """Save all mirrors to database"""
+        if not self.db:
+            return
+
+        try:
+            # Convert to JSON-serializable format
+            mirrors_dict = {str(k): v for k, v in self.mirrors.items() if v}
+            owners_dict = {str(k): v for k, v in self.mirror_owners.items()}
+
+            mirror_data = {
+                'mirrors': mirrors_dict,
+                'owners': owners_dict
+            }
+
+            await self.db.save_bot_setting('mirrors', mirror_data)
+            logger.info(f"Saved mirrors to database")
+        except Exception as e:
+            logger.warning(f"Failed to save mirrors to database: {e}")
 
     async def _download_attachment(self, attachment: discord.Attachment) -> Optional[discord.File]:
         """Download an attachment and return as discord.File"""
@@ -285,12 +343,16 @@ class Mirror(commands.Cog):
         self.mirrors[source.id].append(dest_id)
         self.mirror_owners[source.id] = ctx.guild.id
 
+        # Save to database
+        await self.save_mirrors_to_db()
+
         embed = discord.Embed(
             description=(
                 f"+ Mirror created\n\n"
                 f"› From: #{source.name} (this server)\n"
                 f"› To: #{dest_channel.name} ({dest_channel.guild.name})\n\n"
-                f"*All new messages in #{source.name} will be forwarded*"
+                f"*All new messages in #{source.name} will be forwarded*\n"
+                f"*Mirror saved to database (persists after restart)*"
             ),
             color=EMBED_COLOR
         )
@@ -338,12 +400,14 @@ class Mirror(commands.Cog):
 
             if dest_id in self.mirrors[source.id]:
                 self.mirrors[source.id].remove(dest_id)
+                await self.save_mirrors_to_db()
                 embed = discord.Embed(description=f"− Removed mirror from #{source.name} to `{dest_id}`", color=EMBED_COLOR)
             else:
                 embed = discord.Embed(description="✕ Mirror not found", color=EMBED_COLOR)
         else:
             count = len(self.mirrors[source.id])
             self.mirrors[source.id] = []
+            await self.save_mirrors_to_db()
             embed = discord.Embed(description=f"− Removed all `{count}` mirrors from #{source.name}", color=EMBED_COLOR)
 
         await ctx.send(embed=embed)
@@ -351,20 +415,31 @@ class Mirror(commands.Cog):
     @mirror.command(name='copy', aliases=['history'])
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def mirror_copy(self, ctx: commands.Context, source: discord.TextChannel, destination_id: str, amount: int = 50):
+    async def mirror_copy(self, ctx: commands.Context, source: discord.TextChannel, destination_id: str, amount: str = "50"):
         """
-        Copy message history from source to destination (max 100)
+        Copy message history from source to destination
 
-        Usage: !mirror copy #source-channel 123456789 50
+        Usage:
+        !mirror copy #source 123456789 50    - Copy last 50 messages
+        !mirror copy #source 123456789 all   - Copy ALL messages
         """
         if not self.is_owner(ctx.guild, ctx.author.id):
             embed = discord.Embed(description="✕ Only server owner can copy messages", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        if amount > 100:
-            amount = 100
-        if amount < 1:
-            amount = 1
+        # Parse amount - support "all" keyword
+        copy_all = False
+        if amount.lower() == 'all':
+            copy_all = True
+            limit = None
+        else:
+            try:
+                limit = int(amount)
+                if limit < 1:
+                    limit = 1
+            except ValueError:
+                embed = discord.Embed(description="✕ Invalid amount. Use a number or 'all'", color=EMBED_COLOR)
+                return await ctx.send(embed=embed)
 
         # Parse destination
         try:
@@ -378,16 +453,48 @@ class Mirror(commands.Cog):
             embed = discord.Embed(description="✕ Cannot find destination channel", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        embed = discord.Embed(description=f"⟳ Copying {amount} messages from #{source.name}...\n› Including files, images, and links", color=EMBED_COLOR)
+        amount_text = "ALL" if copy_all else str(limit)
+        embed = discord.Embed(
+            description=f"⟳ Copying {amount_text} messages from #{source.name}...\n› Including files, images, and links\n› This may take a while for large channels",
+            color=EMBED_COLOR
+        )
         msg = await ctx.send(embed=embed)
 
         # Fetch messages
         messages = []
-        async for message in source.history(limit=amount):
+        fetch_count = 0
+        last_update = 0
+        async for message in source.history(limit=limit):
             if not message.author.bot:
                 messages.append(message)
+            fetch_count += 1
+
+            # Update progress every 100 messages fetched
+            if fetch_count - last_update >= 100:
+                last_update = fetch_count
+                progress_embed = discord.Embed(
+                    description=f"⟳ Fetching messages... `{fetch_count}` found so far",
+                    color=EMBED_COLOR
+                )
+                try:
+                    await msg.edit(embed=progress_embed)
+                except:
+                    pass
 
         messages.reverse()  # Oldest first
+
+        total_messages = len(messages)
+        if total_messages == 0:
+            embed = discord.Embed(description="✕ No messages found to copy", color=EMBED_COLOR)
+            await msg.edit(embed=embed)
+            return
+
+        # Update with total count
+        progress_embed = discord.Embed(
+            description=f"⟳ Found `{total_messages}` messages to copy\n› Starting copy process...",
+            color=EMBED_COLOR
+        )
+        await msg.edit(embed=progress_embed)
 
         copied = 0
         files_copied = 0

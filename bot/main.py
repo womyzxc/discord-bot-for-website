@@ -260,7 +260,7 @@ class OffcialxBot(commands.Bot):
         cogs_needing_db = [
             'AntiNuke', 'AntiRaid', 'AntiSpam', 'AntiSelfbot',
             'Whitelist', 'Lockdown', 'Backup', 'SecurityLogging',
-            'Moderation', 'ThreatIntelligence', 'BotAdmin'
+            'Moderation', 'ThreatIntelligence', 'BotAdmin', 'Mirror'
         ]
 
         # Cogs that need audit cache
@@ -294,7 +294,7 @@ class OffcialxBot(commands.Bot):
         logger.info(f'📂 Preloading settings from database for {len(self.guilds)} guilds...')
 
         # Preload settings for cogs that have the preload method
-        cogs_with_preload = ['AntiNuke', 'AntiRaid', 'AntiSpam', 'Whitelist']
+        cogs_with_preload = ['AntiNuke', 'AntiRaid', 'AntiSpam', 'Whitelist', 'Mirror']
 
         for cog_name in cogs_with_preload:
             cog = self.get_cog(cog_name)
