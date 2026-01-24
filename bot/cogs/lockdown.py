@@ -96,7 +96,7 @@ class Lockdown(commands.Cog):
     async def owner_check(self, ctx) -> bool:
         """Check ownership and send error if not owner"""
         if not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can use this command", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only server owner can use this command", color=0x2b2d31)
             await ctx.send(embed=embed)
             return False
         return True
@@ -255,7 +255,7 @@ class Lockdown(commands.Cog):
         settings = await self.get_settings(ctx.guild.id)
         state = self.get_state(ctx.guild.id)
         if state.active:
-            embed = discord.Embed(description="✕ Server already locked. Use `lockdown end`", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Server already locked. Use `lockdown end`", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
         if duration is None:
             duration = settings['default_duration']
@@ -263,7 +263,7 @@ class Lockdown(commands.Cog):
         locked = await self.lockdown_server(ctx.guild, reason, duration, ctx.author)
         embed = discord.Embed(color=self.EMBED_COLOR)
         embed.description = (
-            f"+ Locked server\n\n"
+            f"➕ Locked server\n\n"
             f"› Channels: `{locked}`\n"
             f"› Duration: `{duration // 60}m`\n"
             f"› Reason: `{reason}`"
@@ -277,10 +277,10 @@ class Lockdown(commands.Cog):
             return
         state = self.get_state(ctx.guild.id)
         if not state.active:
-            embed = discord.Embed(description="✕ Server not locked", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Server not locked", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
         unlocked = await self.unlock_server(ctx.guild, reason)
-        embed = discord.Embed(description=f"+ Unlocked `{unlocked}` channels", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Unlocked `{unlocked}` channels", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
     @lockdown_cmd.command(name='channel', aliases=['ch'])
     @commands.has_permissions(manage_channels=True)
@@ -292,9 +292,9 @@ class Lockdown(commands.Cog):
         settings = await self.get_settings(ctx.guild.id)
         exempt_roles = [ctx.guild.get_role(r) for r in settings['exempt_roles'] if ctx.guild.get_role(r)]
         if await self.lock_channel(channel, reason, exempt_roles):
-            embed = discord.Embed(description=f"+ Locked {channel.mention}", color=self.EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Locked {channel.mention}", color=self.EMBED_COLOR)
         else:
-            embed = discord.Embed(description=f"✕ Failed to lock {channel.mention}", color=self.EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Failed to lock {channel.mention}", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
     @lockdown_cmd.command(name='unchannel', aliases=['unch'])
     @commands.has_permissions(manage_channels=True)
@@ -304,9 +304,9 @@ class Lockdown(commands.Cog):
             return
         channel = channel or ctx.channel
         if await self.unlock_channel(channel, reason):
-            embed = discord.Embed(description=f"+ Unlocked {channel.mention}", color=self.EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Unlocked {channel.mention}", color=self.EMBED_COLOR)
         else:
-            embed = discord.Embed(description=f"✕ Failed to unlock {channel.mention}", color=self.EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Failed to unlock {channel.mention}", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
     @lockdown_cmd.command(name='status')
     @commands.has_permissions(administrator=True)
@@ -335,9 +335,9 @@ class Lockdown(commands.Cog):
             return
         success = await self.trigger_panic_mode(ctx.guild, ctx.author, trigger)
         if success:
-            embed = discord.Embed(description="+ Panic mode activated - Server locked", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="➕ Panic mode activated - Server locked", color=self.EMBED_COLOR)
         else:
-            embed = discord.Embed(description="✕ Panic mode on cooldown", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Panic mode on cooldown", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
     @lockdown_cmd.command(name='exempt')
     @commands.has_permissions(administrator=True)
@@ -349,11 +349,11 @@ class Lockdown(commands.Cog):
         if role.id in settings['exempt_roles']:
             settings['exempt_roles'].remove(role.id)
             await self.save_settings(ctx.guild.id)
-            embed = discord.Embed(description=f"− Removed {role.mention} from lockdown exemptions", color=self.EMBED_COLOR)
+            embed = discord.Embed(description=f"➖ Removed {role.mention} from lockdown exemptions", color=self.EMBED_COLOR)
         else:
             settings['exempt_roles'].append(role.id)
             await self.save_settings(ctx.guild.id)
-            embed = discord.Embed(description=f"+ Added {role.mention} to lockdown exemptions", color=self.EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Added {role.mention} to lockdown exemptions", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
     @lockdown_cmd.command(name='notify')
     @commands.has_permissions(administrator=True)
@@ -364,7 +364,7 @@ class Lockdown(commands.Cog):
         settings = await self.get_settings(ctx.guild.id)
         settings['notify_channel'] = channel.id
         await self.save_settings(ctx.guild.id)
-        embed = discord.Embed(description=f"+ Set notification channel to {channel.mention}", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set notification channel to {channel.mention}", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 async def setup(bot):
     await bot.add_cog(Lockdown(bot))
