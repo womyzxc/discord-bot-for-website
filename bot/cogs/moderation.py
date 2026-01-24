@@ -9,7 +9,8 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 import asyncio
 import logging
-from typing import Optional
+import re
+from typing import Optional, Union
 
 logger = logging.getLogger('Offcialx.Moderation')
 
@@ -83,6 +84,79 @@ class Moderation(commands.Cog):
             except Exception as e:
                 logger.warning(f'Failed to save warning to database: {e}')
 
+    async def resolve_member(self, ctx, user_input: str) -> Optional[discord.Member]:
+        """Resolve a member from User ID, mention, or username search"""
+        if not user_input:
+            return None
+
+        user_input = user_input.strip()
+
+        # Try to extract ID from mention format <@123456789> or <@!123456789>
+        mention_match = re.match(r'<@!?(\d+)>', user_input)
+        if mention_match:
+            user_id = int(mention_match.group(1))
+            member = ctx.guild.get_member(user_id)
+            if member:
+                return member
+
+        # Try to parse as raw user ID
+        if user_input.isdigit():
+            user_id = int(user_input)
+            member = ctx.guild.get_member(user_id)
+            if member:
+                return member
+            # Try to fetch if not in cache
+            try:
+                member = await ctx.guild.fetch_member(user_id)
+                if member:
+                    return member
+            except:
+                pass
+
+        # Search by username (case-insensitive)
+        user_input_lower = user_input.lower().lstrip('@')
+
+        # Exact match first
+        for member in ctx.guild.members:
+            if member.name.lower() == user_input_lower:
+                return member
+            if member.display_name.lower() == user_input_lower:
+                return member
+
+        # Partial match
+        for member in ctx.guild.members:
+            if user_input_lower in member.name.lower():
+                return member
+            if user_input_lower in member.display_name.lower():
+                return member
+
+        return None
+
+    async def resolve_user(self, user_input: str) -> Optional[discord.User]:
+        """Resolve a user from User ID or mention (for users not in server)"""
+        if not user_input:
+            return None
+
+        user_input = user_input.strip()
+
+        # Try to extract ID from mention format
+        mention_match = re.match(r'<@!?(\d+)>', user_input)
+        if mention_match:
+            user_id = int(mention_match.group(1))
+            try:
+                return await self.bot.fetch_user(user_id)
+            except:
+                return None
+
+        # Try to parse as raw user ID
+        if user_input.isdigit():
+            try:
+                return await self.bot.fetch_user(int(user_input))
+            except:
+                return None
+
+        return None
+
     async def dm_user(self, member: discord.Member, action: str, reason: str,
                       duration: str = None, guild_name: str = None):
         """Send DM to user about moderation action"""
@@ -129,8 +203,27 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='ban')
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
-    async def ban(self, ctx: commands.Context, member: discord.Member, *, reason: str = None):
-        """Ban a member from the server"""
+    async def ban(self, ctx: commands.Context, user_input: str, *, reason: str = None):
+        """Ban a member by ID, mention, or username"""
+        member = await self.resolve_member(ctx, user_input)
+
+        if not member:
+            # Try to ban by ID even if not in server
+            user = await self.resolve_user(user_input)
+            if user:
+                try:
+                    await ctx.guild.ban(user, reason=f"{reason or 'No reason'} | By: {ctx.author}")
+                    embed = discord.Embed(description=f"➕ Banned **{user.name}** (`{user.id}`)", color=EMBED_COLOR)
+                    if reason:
+                        embed.description += f"\n› Reason: `{reason}`"
+                    return await ctx.send(embed=embed)
+                except discord.Forbidden:
+                    embed = discord.Embed(description="✖️ Missing permissions to ban", color=EMBED_COLOR)
+                    return await ctx.send(embed=embed)
+
+            embed = discord.Embed(description=f"✖️ User not found: `{user_input}`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
             embed = discord.Embed(description="✖️ Cannot ban someone with higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
@@ -164,8 +257,6 @@ class Moderation(commands.Cog):
     @commands.bot_has_permissions(ban_members=True)
     async def unban(self, ctx: commands.Context, user_input: str, *, reason: str = None):
         """Unban a user by ID, mention, or username"""
-        import re
-
         user = None
         user_id = None
 
@@ -285,8 +376,14 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='kick')
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_permissions(kick_members=True)
-    async def kick(self, ctx: commands.Context, member: discord.Member, *, reason: str = None):
-        """Kick a member from the server"""
+    async def kick(self, ctx: commands.Context, user_input: str, *, reason: str = None):
+        """Kick a member by ID, mention, or username"""
+        member = await self.resolve_member(ctx, user_input)
+
+        if not member:
+            embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
             embed = discord.Embed(description="✖️ Cannot kick someone with higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
@@ -316,8 +413,14 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='mute', aliases=['timeout'])
     @commands.has_permissions(moderate_members=True)
     @commands.bot_has_permissions(moderate_members=True)
-    async def mute(self, ctx: commands.Context, member: discord.Member, duration: str = "1h", *, reason: str = None):
-        """Timeout a member (e.g., 10m, 1h, 1d)"""
+    async def mute(self, ctx: commands.Context, user_input: str, duration: str = "1h", *, reason: str = None):
+        """Timeout a member by ID, mention, or username (e.g., 10m, 1h, 1d)"""
+        member = await self.resolve_member(ctx, user_input)
+
+        if not member:
+            embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
             embed = discord.Embed(description="✖️ Cannot mute someone with higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
@@ -350,8 +453,14 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='unmute', aliases=['untimeout'])
     @commands.has_permissions(moderate_members=True)
     @commands.bot_has_permissions(moderate_members=True)
-    async def unmute(self, ctx: commands.Context, member: discord.Member, *, reason: str = None):
-        """Remove timeout from a member"""
+    async def unmute(self, ctx: commands.Context, user_input: str, *, reason: str = None):
+        """Remove timeout from a member by ID, mention, or username"""
+        member = await self.resolve_member(ctx, user_input)
+
+        if not member:
+            embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         try:
             await member.timeout(None, reason=f"{reason or 'No reason'} | By: {ctx.author}")
             embed = discord.Embed(description=f"➕ Unmuted {member.mention}", color=EMBED_COLOR)
@@ -361,12 +470,47 @@ class Moderation(commands.Cog):
             embed = discord.Embed(description="✖️ Missing permissions to unmute", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
+    # ==================== NICK COMMAND ====================
+
+    @commands.hybrid_command(name='nick', aliases=['nickname', 'setnick'])
+    @commands.has_permissions(manage_nicknames=True)
+    @commands.bot_has_permissions(manage_nicknames=True)
+    async def nick(self, ctx: commands.Context, user_input: str, *, nickname: str = None):
+        """Change a member's nickname by ID, mention, or username"""
+        member = await self.resolve_member(ctx, user_input)
+
+        if not member:
+            embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
+            embed = discord.Embed(description="✖️ Cannot change nickname of someone with higher role", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        try:
+            old_nick = member.display_name
+            await member.edit(nick=nickname)
+            if nickname:
+                embed = discord.Embed(description=f"➕ Changed {member.mention}'s nickname to `{nickname}`", color=EMBED_COLOR)
+            else:
+                embed = discord.Embed(description=f"➕ Reset {member.mention}'s nickname", color=EMBED_COLOR)
+            await ctx.send(embed=embed)
+        except discord.Forbidden:
+            embed = discord.Embed(description="✖️ Missing permissions to change nickname", color=EMBED_COLOR)
+            await ctx.send(embed=embed)
+
     # ==================== WARN COMMANDS ====================
 
     @commands.hybrid_command(name='warn')
     @commands.has_permissions(moderate_members=True)
-    async def warn(self, ctx: commands.Context, member: discord.Member, *, reason: str = "No reason"):
-        """Warn a member"""
+    async def warn(self, ctx: commands.Context, user_input: str, *, reason: str = "No reason"):
+        """Warn a member by ID, mention, or username"""
+        member = await self.resolve_member(ctx, user_input)
+
+        if not member:
+            embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         if member.id == ctx.author.id:
             embed = discord.Embed(description="✖️ Cannot warn yourself", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
@@ -418,8 +562,14 @@ class Moderation(commands.Cog):
 
     @commands.hybrid_command(name='warnings', aliases=['warns'])
     @commands.has_permissions(moderate_members=True)
-    async def warnings_cmd(self, ctx: commands.Context, member: discord.Member):
-        """View warnings for a member"""
+    async def warnings_cmd(self, ctx: commands.Context, user_input: str):
+        """View warnings for a member by ID, mention, or username"""
+        member = await self.resolve_member(ctx, user_input)
+
+        if not member:
+            embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         warns = self.warnings[ctx.guild.id].get(member.id, [])
 
         if not warns:
@@ -436,8 +586,14 @@ class Moderation(commands.Cog):
 
     @commands.hybrid_command(name='clearwarns', aliases=['clearwarnings'])
     @commands.has_permissions(administrator=True)
-    async def clearwarns(self, ctx: commands.Context, member: discord.Member):
-        """Clear all warnings for a member"""
+    async def clearwarns(self, ctx: commands.Context, user_input: str):
+        """Clear all warnings for a member by ID, mention, or username"""
+        member = await self.resolve_member(ctx, user_input)
+
+        if not member:
+            embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         count = len(self.warnings[ctx.guild.id].get(member.id, []))
         self.warnings[ctx.guild.id][member.id] = []
 
@@ -462,6 +618,7 @@ class Moderation(commands.Cog):
         Usage:
         !purge 10 - Delete 10 messages
         !purge @user 10 - Delete 10 messages from user
+        !purge username 10 - Delete 10 messages from user
         """
         # Parse arguments
         member = None
@@ -473,25 +630,18 @@ class Moderation(commands.Cog):
             # Just a number: !purge 10
             amount = int(target)
         else:
-            # User mention: !purge @user 10
-            # Try to get member from mention
-            try:
-                # Remove <@> and <@!> from mention
-                user_id = target.replace('<@', '').replace('>', '').replace('!', '')
-                if user_id.isdigit():
-                    member = ctx.guild.get_member(int(user_id))
-            except:
-                pass
+            # User input: !purge @user 10 or !purge username 10
+            member = await self.resolve_member(ctx, target)
 
             if member is None:
-                embed = discord.Embed(description="User not found", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"✖️ User not found: `{target}`", color=EMBED_COLOR)
                 return await ctx.send(embed=embed)
 
             if amount is None:
                 amount = 10
 
         if amount < 1 or amount > 1000:
-            embed = discord.Embed(description="Amount must be 1-1000", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Amount must be 1-1000", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         try:
@@ -520,19 +670,25 @@ class Moderation(commands.Cog):
             await asyncio.sleep(3)
             await msg.delete()
         except discord.Forbidden:
-            embed = discord.Embed(description="Missing permissions", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Missing permissions", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         except discord.HTTPException:
-            embed = discord.Embed(description="Failed to delete (messages may be too old)", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Failed to delete (messages may be too old)", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(name='purgeuser')
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
-    async def purgeuser(self, ctx: commands.Context, member: discord.Member, amount: int = 100):
-        """Delete messages from a specific user"""
+    async def purgeuser(self, ctx: commands.Context, user_input: str, amount: int = 100):
+        """Delete messages from a specific user by ID, mention, or username"""
+        member = await self.resolve_member(ctx, user_input)
+
+        if not member:
+            embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         if amount < 1 or amount > 1000:
-            embed = discord.Embed(description="Amount must be 1-1000", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Amount must be 1-1000", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         try:
@@ -552,10 +708,10 @@ class Moderation(commands.Cog):
             await asyncio.sleep(3)
             await msg.delete()
         except discord.Forbidden:
-            embed = discord.Embed(description="Missing permissions", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Missing permissions", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         except discord.HTTPException:
-            embed = discord.Embed(description="Failed to delete (messages may be too old)", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Failed to delete (messages may be too old)", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     # ==================== SLOWMODE COMMAND ====================
