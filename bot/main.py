@@ -365,27 +365,29 @@ class OffcialxBot(commands.Bot):
         embed = discord.Embed(color=EMBED_COLOR)
 
         if isinstance(error, commands.MissingPermissions):
-            embed.description = "✕ You don't have permission"
+            embed.description = "✖️ You don't have permission"
         elif isinstance(error, commands.BotMissingPermissions):
             perms = ', '.join(error.missing_permissions)
-            embed.description = f"✕ Missing permissions: `{perms}`"
+            embed.description = f"✖️ Missing permissions: `{perms}`"
         elif isinstance(error, commands.NotOwner):
-            embed.description = "✕ Owner only command"
+            embed.description = "✖️ Owner only command"
         elif isinstance(error, commands.MissingRequiredArgument):
-            embed.description = f"✕ Missing argument: `{error.param.name}`"
+            embed.description = f"✖️ Missing argument: `{error.param.name}`"
         elif isinstance(error, commands.CommandOnCooldown):
-            embed.description = f"✕ Cooldown: `{error.retry_after:.1f}s`"
+            embed.description = f"✖️ Cooldown: `{error.retry_after:.1f}s`"
         elif isinstance(error, commands.BadArgument):
-            embed.description = f"✕ Invalid argument"
+            embed.description = "✖️ Invalid argument"
         elif isinstance(error, commands.MemberNotFound):
-            embed.description = "✕ Member not found"
+            embed.description = "✖️ Member not found"
         elif isinstance(error, commands.RoleNotFound):
-            embed.description = "✕ Role not found"
+            embed.description = "✖️ Role not found"
         elif isinstance(error, commands.ChannelNotFound):
-            embed.description = "✕ Channel not found"
+            embed.description = "✖️ Channel not found"
+        elif isinstance(error, commands.UserNotFound):
+            embed.description = "✖️ User not found"
         else:
             logger.error(f'Command error in {ctx.command}: {error}')
-            embed.description = "✕ An error occurred"
+            embed.description = "✖️ An error occurred"
 
         try:
             await ctx.send(embed=embed)

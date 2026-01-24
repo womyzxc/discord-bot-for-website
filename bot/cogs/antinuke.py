@@ -2868,38 +2868,6 @@ class AntiNuke(commands.Cog):
         embed = discord.Embed(description=f"➕ Cleared {count} channels from restore list", color=0x2b2d31)
         await ctx.send(embed=embed)
 
-    # ==================== ERROR HANDLERS ====================
-
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error):
-        """Handle command errors including cooldowns"""
-        if hasattr(ctx.command, 'on_error'):
-            return
-
-        if isinstance(error, commands.CommandOnCooldown):
-            embed = discord.Embed(
-                description=f"✖️ Cooldown: wait `{error.retry_after:.1f}s`",
-                color=0x2b2d31
-            )
-            await ctx.send(embed=embed, delete_after=5)
-        elif isinstance(error, commands.MissingPermissions):
-            embed = discord.Embed(
-                description="✖️ You don't have permission to use this command",
-                color=0x2b2d31
-            )
-            await ctx.send(embed=embed)
-        elif isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(
-                description="✖️ Member not found",
-                color=0x2b2d31
-            )
-            await ctx.send(embed=embed)
-        elif isinstance(error, commands.BadArgument):
-            embed = discord.Embed(
-                description="✖️ Invalid argument provided",
-                color=0x2b2d31
-            )
-            await ctx.send(embed=embed)
 
 
 async def setup(bot):
