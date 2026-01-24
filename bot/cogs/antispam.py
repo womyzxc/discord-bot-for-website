@@ -64,7 +64,7 @@ class AntiSpam(commands.Cog):
     async def owner_check(self, ctx) -> bool:
         """Check ownership and send error if not authorized"""
         if not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can use this command", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Only server owner can use this command", color=EMBED_COLOR)
             await ctx.send(embed=embed)
             return False
         return True
@@ -178,7 +178,7 @@ class AntiSpam(commands.Cog):
         settings['enabled'] = True
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description="+ Enabled anti-spam protection", color=EMBED_COLOR)
+        embed = discord.Embed(description="➕ Enabled anti-spam protection", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antispam.command(name='disable')
@@ -192,7 +192,7 @@ class AntiSpam(commands.Cog):
         settings['enabled'] = False
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description="− Disabled anti-spam protection", color=EMBED_COLOR)
+        embed = discord.Embed(description="➖ Disabled anti-spam protection", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antispam.command(name='action')
@@ -205,14 +205,14 @@ class AntiSpam(commands.Cog):
 
         valid = ['warn', 'mute', 'kick', 'ban']
         if action.lower() not in valid:
-            embed = discord.Embed(description=f"✕ Invalid action. Use: {', '.join(valid)}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Invalid action. Use: {', '.join(valid)}", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
         settings['action'] = action.lower()
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description=f"+ Set spam action to `{action.lower()}`", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set spam action to `{action.lower()}`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antispam.command(name='links')
@@ -228,7 +228,7 @@ class AntiSpam(commands.Cog):
         await self.save_settings(ctx.guild.id)
 
         status = "allowed" if allow else "blocked"
-        embed = discord.Embed(description=f"+ Links are now {status}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Links are now {status}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antispam.command(name='invites')
@@ -244,7 +244,7 @@ class AntiSpam(commands.Cog):
         await self.save_settings(ctx.guild.id)
 
         status = "allowed" if allow else "blocked"
-        embed = discord.Embed(description=f"+ Discord invites are now {status}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Discord invites are now {status}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antispam.command(name='shorteners')
@@ -260,7 +260,7 @@ class AntiSpam(commands.Cog):
         await self.save_settings(ctx.guild.id)
 
         status = "blocked" if block else "allowed"
-        embed = discord.Embed(description=f"+ URL shorteners are now {status}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ URL shorteners are now {status}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antispam.command(name='phishing')
@@ -276,7 +276,7 @@ class AntiSpam(commands.Cog):
         await self.save_settings(ctx.guild.id)
 
         status = "blocked" if block else "allowed"
-        embed = discord.Embed(description=f"+ Phishing links are now {status}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Phishing links are now {status}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antispam.command(name='setlog')
@@ -291,7 +291,7 @@ class AntiSpam(commands.Cog):
         settings['log_channel'] = channel.id
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description=f"+ Set spam log to {channel.mention}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set spam log to {channel.mention}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antispam.command(name='exempt')
@@ -309,9 +309,9 @@ class AntiSpam(commands.Cog):
         if role.id not in settings['exempt_roles']:
             settings['exempt_roles'].append(role.id)
             await self.save_settings(ctx.guild.id)
-            embed = discord.Embed(description=f"+ Exempted {role.mention} from anti-spam", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Exempted {role.mention} from anti-spam", color=EMBED_COLOR)
         else:
-            embed = discord.Embed(description=f"✕ {role.mention} is already exempt", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ {role.mention} is already exempt", color=EMBED_COLOR)
 
         await ctx.send(embed=embed)
 
@@ -327,9 +327,9 @@ class AntiSpam(commands.Cog):
         if role.id in settings.get('exempt_roles', []):
             settings['exempt_roles'].remove(role.id)
             await self.save_settings(ctx.guild.id)
-            embed = discord.Embed(description=f"− Removed {role.mention} from exemption", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➖ Removed {role.mention} from exemption", color=EMBED_COLOR)
         else:
-            embed = discord.Embed(description=f"✕ {role.mention} is not exempt", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ {role.mention} is not exempt", color=EMBED_COLOR)
 
         await ctx.send(embed=embed)
 
@@ -342,11 +342,11 @@ class AntiSpam(commands.Cog):
             return
 
         if count < 1 or count > 50:
-            embed = discord.Embed(description="✕ Count must be between 1 and 50", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Count must be between 1 and 50", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if seconds < 1 or seconds > 60:
-            embed = discord.Embed(description="✕ Seconds must be between 1 and 60", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Seconds must be between 1 and 60", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
@@ -354,7 +354,7 @@ class AntiSpam(commands.Cog):
         settings['message_timeframe'] = seconds
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description=f"+ Set limit to `{count}` messages in `{seconds}` seconds", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set limit to `{count}` messages in `{seconds}` seconds", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     # ==================== WHITELIST COMMANDS ====================
@@ -392,11 +392,11 @@ class AntiSpam(commands.Cog):
             settings['link_whitelist'] = []
 
         if domain in settings['link_whitelist']:
-            embed = discord.Embed(description=f"✕ `{domain}` already whitelisted", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ `{domain}` already whitelisted", color=EMBED_COLOR)
         else:
             settings['link_whitelist'].append(domain)
             await self.save_settings(ctx.guild.id)
-            embed = discord.Embed(description=f"+ Added `{domain}` to whitelist", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Added `{domain}` to whitelist", color=EMBED_COLOR)
 
         await ctx.send(embed=embed)
 
@@ -412,11 +412,11 @@ class AntiSpam(commands.Cog):
         settings = await self.get_settings(ctx.guild.id)
 
         if domain not in settings.get('link_whitelist', []):
-            embed = discord.Embed(description=f"✕ `{domain}` not in whitelist", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ `{domain}` not in whitelist", color=EMBED_COLOR)
         else:
             settings['link_whitelist'].remove(domain)
             await self.save_settings(ctx.guild.id)
-            embed = discord.Embed(description=f"− Removed `{domain}` from whitelist", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➖ Removed `{domain}` from whitelist", color=EMBED_COLOR)
 
         await ctx.send(embed=embed)
 
@@ -432,7 +432,7 @@ class AntiSpam(commands.Cog):
         settings['link_whitelist'] = []
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description=f"+ Cleared `{count}` domains", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Cleared `{count}` domains", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     # ==================== STATUS COMMAND ====================
@@ -537,7 +537,7 @@ class AntiSpam(commands.Cog):
             try:
                 await message.delete()
                 embed = discord.Embed(
-                    description=f"✕ {message.author.mention}, {violation}s are not allowed here",
+                    description=f"✖️ {message.author.mention}, {violation}s are not allowed here",
                     color=EMBED_COLOR
                 )
                 warn_msg = await message.channel.send(embed=embed)
