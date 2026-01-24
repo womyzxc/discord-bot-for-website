@@ -132,15 +132,15 @@ class Moderation(commands.Cog):
     async def ban(self, ctx: commands.Context, member: discord.Member, *, reason: str = None):
         """Ban a member from the server"""
         if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
-            embed = discord.Embed(description="✕ Cannot ban someone with higher role", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot ban someone with higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if member.id == ctx.author.id:
-            embed = discord.Embed(description="✕ Cannot ban yourself", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot ban yourself", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if member.id == self.bot.user.id:
-            embed = discord.Embed(description="✕ Cannot ban me", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot ban me", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
@@ -150,13 +150,13 @@ class Moderation(commands.Cog):
 
         try:
             await member.ban(reason=f"{reason or 'No reason'} | By: {ctx.author}")
-            embed = discord.Embed(description=f"+ Banned {member.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Banned {member.mention}", color=EMBED_COLOR)
             if reason:
                 embed.description += f"\n› Reason: `{reason}`"
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'ban', ctx.author, member, reason)
         except discord.Forbidden:
-            embed = discord.Embed(description="✕ Missing permissions to ban", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Missing permissions to ban", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(name='unban')
@@ -167,14 +167,14 @@ class Moderation(commands.Cog):
         try:
             user = await self.bot.fetch_user(user_id)
             await ctx.guild.unban(user, reason=f"{reason or 'No reason'} | By: {ctx.author}")
-            embed = discord.Embed(description=f"+ Unbanned {user.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Unbanned {user.mention}", color=EMBED_COLOR)
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'unban', ctx.author, user, reason)
         except discord.NotFound:
-            embed = discord.Embed(description="✕ User not found or not banned", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ User not found or not banned", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         except discord.Forbidden:
-            embed = discord.Embed(description="✕ Missing permissions to unban", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Missing permissions to unban", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(name='massban')
@@ -185,11 +185,11 @@ class Moderation(commands.Cog):
         ids = [int(i.strip()) for i in user_ids.split(',') if i.strip().isdigit()]
 
         if not ids:
-            embed = discord.Embed(description="✕ Provide user IDs separated by commas", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Provide user IDs separated by commas", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if len(ids) > 50:
-            embed = discord.Embed(description="✕ Maximum 50 users per mass ban", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Maximum 50 users per mass ban", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         banned = 0
@@ -200,7 +200,7 @@ class Moderation(commands.Cog):
             except:
                 pass
 
-        embed = discord.Embed(description=f"+ Banned `{banned}/{len(ids)}` users", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Banned `{banned}/{len(ids)}` users", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     # ==================== KICK COMMANDS ====================
@@ -211,11 +211,11 @@ class Moderation(commands.Cog):
     async def kick(self, ctx: commands.Context, member: discord.Member, *, reason: str = None):
         """Kick a member from the server"""
         if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
-            embed = discord.Embed(description="✕ Cannot kick someone with higher role", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot kick someone with higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if member.id == ctx.author.id:
-            embed = discord.Embed(description="✕ Cannot kick yourself", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot kick yourself", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
@@ -225,13 +225,13 @@ class Moderation(commands.Cog):
 
         try:
             await member.kick(reason=f"{reason or 'No reason'} | By: {ctx.author}")
-            embed = discord.Embed(description=f"+ Kicked {member.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Kicked {member.mention}", color=EMBED_COLOR)
             if reason:
                 embed.description += f"\n› Reason: `{reason}`"
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'kick', ctx.author, member, reason)
         except discord.Forbidden:
-            embed = discord.Embed(description="✕ Missing permissions to kick", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Missing permissions to kick", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     # ==================== MUTE/TIMEOUT COMMANDS ====================
@@ -242,7 +242,7 @@ class Moderation(commands.Cog):
     async def mute(self, ctx: commands.Context, member: discord.Member, duration: str = "1h", *, reason: str = None):
         """Timeout a member (e.g., 10m, 1h, 1d)"""
         if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
-            embed = discord.Embed(description="✕ Cannot mute someone with higher role", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot mute someone with higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         duration_map = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
@@ -261,13 +261,13 @@ class Moderation(commands.Cog):
 
         try:
             await member.timeout(timedelta(seconds=seconds), reason=f"{reason or 'No reason'} | By: {ctx.author}")
-            embed = discord.Embed(description=f"+ Muted {member.mention} for `{duration}`", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Muted {member.mention} for `{duration}`", color=EMBED_COLOR)
             if reason:
                 embed.description += f"\n› Reason: `{reason}`"
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'mute', ctx.author, member, reason, duration)
         except discord.Forbidden:
-            embed = discord.Embed(description="✕ Missing permissions to mute", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Missing permissions to mute", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(name='unmute', aliases=['untimeout'])
@@ -277,11 +277,11 @@ class Moderation(commands.Cog):
         """Remove timeout from a member"""
         try:
             await member.timeout(None, reason=f"{reason or 'No reason'} | By: {ctx.author}")
-            embed = discord.Embed(description=f"+ Unmuted {member.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Unmuted {member.mention}", color=EMBED_COLOR)
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'unmute', ctx.author, member, reason)
         except discord.Forbidden:
-            embed = discord.Embed(description="✕ Missing permissions to unmute", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Missing permissions to unmute", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     # ==================== WARN COMMANDS ====================
@@ -291,11 +291,11 @@ class Moderation(commands.Cog):
     async def warn(self, ctx: commands.Context, member: discord.Member, *, reason: str = "No reason"):
         """Warn a member"""
         if member.id == ctx.author.id:
-            embed = discord.Embed(description="✕ Cannot warn yourself", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot warn yourself", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if member.bot:
-            embed = discord.Embed(description="✕ Cannot warn bots", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot warn bots", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
@@ -313,7 +313,7 @@ class Moderation(commands.Cog):
         warn_count = len(self.warnings[ctx.guild.id][member.id])
 
         embed = discord.Embed(
-            description=f"+ Warned {member.mention} `{warn_count}/{settings['warn_threshold']}`\n› Reason: `{reason}`",
+            description=f"➕ Warned {member.mention} `{warn_count}/{settings['warn_threshold']}`\n› Reason: `{reason}`",
             color=EMBED_COLOR
         )
         await ctx.send(embed=embed)
@@ -327,15 +327,15 @@ class Moderation(commands.Cog):
             if action == 'mute':
                 duration = timedelta(seconds=settings['warn_mute_duration'])
                 await member.timeout(duration, reason=f"Warning threshold reached")
-                embed = discord.Embed(description=f"+ Muted {member.mention} for reaching warn threshold", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"➕ Muted {member.mention} for reaching warn threshold", color=EMBED_COLOR)
                 await ctx.send(embed=embed)
             elif action == 'kick':
                 await member.kick(reason=f"Warning threshold reached")
-                embed = discord.Embed(description=f"+ Kicked {member.mention} for reaching warn threshold", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"➕ Kicked {member.mention} for reaching warn threshold", color=EMBED_COLOR)
                 await ctx.send(embed=embed)
             elif action == 'ban':
                 await member.ban(reason=f"Warning threshold reached")
-                embed = discord.Embed(description=f"+ Banned {member.mention} for reaching warn threshold", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"➕ Banned {member.mention} for reaching warn threshold", color=EMBED_COLOR)
                 await ctx.send(embed=embed)
             self.warnings[ctx.guild.id][member.id] = []
 
@@ -371,7 +371,7 @@ class Moderation(commands.Cog):
             except:
                 pass
 
-        embed = discord.Embed(description=f"+ Cleared `{count}` warnings for {member.mention}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Cleared `{count}` warnings for {member.mention}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     # ==================== PURGE COMMANDS ====================
@@ -433,11 +433,11 @@ class Moderation(commands.Cog):
                 if deleted_messages:
                     await ctx.channel.delete_messages(deleted_messages)
 
-                embed = discord.Embed(description=f"+ Deleted `{len(deleted_messages)}` messages from {member.mention}", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"➕ Deleted `{len(deleted_messages)}` messages from {member.mention}", color=EMBED_COLOR)
             else:
                 # Purge all messages
                 deleted = await ctx.channel.purge(limit=amount)
-                embed = discord.Embed(description=f"+ Deleted `{len(deleted)}` messages", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"➕ Deleted `{len(deleted)}` messages", color=EMBED_COLOR)
 
             msg = await ctx.send(embed=embed)
             await asyncio.sleep(3)
@@ -470,7 +470,7 @@ class Moderation(commands.Cog):
             if deleted_messages:
                 await ctx.channel.delete_messages(deleted_messages)
 
-            embed = discord.Embed(description=f"+ Deleted `{len(deleted_messages)}` messages from {member.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Deleted `{len(deleted_messages)}` messages from {member.mention}", color=EMBED_COLOR)
             msg = await ctx.send(embed=embed)
             await asyncio.sleep(3)
             await msg.delete()
@@ -489,15 +489,15 @@ class Moderation(commands.Cog):
     async def slowmode(self, ctx: commands.Context, seconds: int = 0):
         """Set slowmode for the channel (0 to disable)"""
         if seconds < 0 or seconds > 21600:
-            embed = discord.Embed(description="✕ Slowmode must be 0-21600 seconds", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Slowmode must be 0-21600 seconds", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         await ctx.channel.edit(slowmode_delay=seconds)
 
         if seconds == 0:
-            embed = discord.Embed(description="+ Disabled slowmode", color=EMBED_COLOR)
+            embed = discord.Embed(description="➕ Disabled slowmode", color=EMBED_COLOR)
         else:
-            embed = discord.Embed(description=f"+ Set slowmode to `{seconds}s`", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Set slowmode to `{seconds}s`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     # ==================== SETLOG COMMAND ====================
@@ -509,7 +509,7 @@ class Moderation(commands.Cog):
         settings = await self.get_settings(ctx.guild.id)
         settings['log_channel'] = channel.id
         await self.save_settings(ctx.guild.id)
-        embed = discord.Embed(description=f"+ Set mod log to {channel.mention}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set mod log to {channel.mention}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
 
