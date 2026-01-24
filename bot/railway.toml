@@ -1,0 +1,24 @@
+# Offcialx Discord Bot - Railway Configuration
+# Deploy with: railway up
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# No health check path since this is a Discord bot, not a web server
+# The bot runs as a long-running process
+restartPolicyType = "always"
+restartPolicyMaxRetries = 10
+numReplicas = 1
+
+# Environment variables (set these in Railway dashboard)
+# DISCORD_BOT_TOKEN - Your Discord bot token
+# BOT_PREFIX - Command prefix (default: !)
+# OWNER_IDS - Comma-separated list of owner Discord IDs
+# DATABASE_URL - PostgreSQL connection string (optional)
+# API_SECRET_KEY - Secret key for API authentication
+# WEBHOOK_URL - Discord webhook for alerts (optional)
+
+[nixpacks]
+aptPkgs = ["gcc", "libffi-dev"]

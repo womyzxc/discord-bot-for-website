@@ -1,0 +1,8 @@
+# Offcialx Discord Bot - Procfile for Railway/Heroku
+# This file tells Railway how to run the bot
+
+# Run bot with API server
+worker: python run_with_api.py
+
+# Or run bot only (no API)
+# worker: python main.py
