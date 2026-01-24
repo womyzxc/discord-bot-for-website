@@ -155,7 +155,7 @@ class Mirror(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def mirror(self, ctx: commands.Context):
         if not self.is_owner(ctx.guild, ctx.author.id):
-            return await ctx.send(embed=discord.Embed(description="✕ Only server owner", color=EMBED_COLOR))
+            return await ctx.send(embed=discord.Embed(description="✖️ Only server owner", color=EMBED_COLOR))
 
         guild_mirrors = []
         for source_id, destinations in self.mirrors.items():
@@ -177,15 +177,15 @@ class Mirror(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def mirror_add(self, ctx, source: discord.TextChannel, destination_id: str):
         if not self.is_owner(ctx.guild, ctx.author.id):
-            return await ctx.send(embed=discord.Embed(description="✕ Only server owner", color=EMBED_COLOR))
+            return await ctx.send(embed=discord.Embed(description="✖️ Only server owner", color=EMBED_COLOR))
         try:
             dest_id = int(destination_id.strip('<>#'))
         except:
-            return await ctx.send(embed=discord.Embed(description="✕ Invalid ID", color=EMBED_COLOR))
+            return await ctx.send(embed=discord.Embed(description="✖️ Invalid ID", color=EMBED_COLOR))
 
         dest_channel = self.bot.get_channel(dest_id)
         if not dest_channel:
-            return await ctx.send(embed=discord.Embed(description="✕ Channel not found", color=EMBED_COLOR))
+            return await ctx.send(embed=discord.Embed(description="✖️ Channel not found", color=EMBED_COLOR))
 
         if dest_id in self.mirrors[source.id]:
             return await ctx.send(embed=discord.Embed(description="› Already mirrored", color=EMBED_COLOR))
@@ -194,14 +194,14 @@ class Mirror(commands.Cog):
         self.mirror_owners[source.id] = ctx.guild.id
         await self.save_mirrors_to_db()
 
-        await ctx.send(embed=discord.Embed(description=f"+ Mirror: #{source.name} → #{dest_channel.name}", color=EMBED_COLOR))
+        await ctx.send(embed=discord.Embed(description=f"➕ Mirror: #{source.name} → #{dest_channel.name}", color=EMBED_COLOR))
 
     @mirror.command(name='remove')
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def mirror_remove(self, ctx, source: discord.TextChannel, destination_id: str = None):
         if not self.is_owner(ctx.guild, ctx.author.id):
-            return await ctx.send(embed=discord.Embed(description="✕ Only server owner", color=EMBED_COLOR))
+            return await ctx.send(embed=discord.Embed(description="✖️ Only server owner", color=EMBED_COLOR))
 
         if destination_id:
             try:
@@ -209,23 +209,23 @@ class Mirror(commands.Cog):
                 if dest_id in self.mirrors[source.id]:
                     self.mirrors[source.id].remove(dest_id)
                     await self.save_mirrors_to_db()
-                    return await ctx.send(embed=discord.Embed(description=f"− Removed mirror", color=EMBED_COLOR))
+                    return await ctx.send(embed=discord.Embed(description=f"➖ Removed mirror", color=EMBED_COLOR))
             except:
                 pass
         else:
             self.mirrors[source.id] = []
             await self.save_mirrors_to_db()
-            return await ctx.send(embed=discord.Embed(description=f"− Removed all mirrors from #{source.name}", color=EMBED_COLOR))
+            return await ctx.send(embed=discord.Embed(description=f"➖ Removed all mirrors from #{source.name}", color=EMBED_COLOR))
 
     @mirror.command(name='copy')
     @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def mirror_copy(self, ctx, source: discord.TextChannel, destination_id: str, amount: str = "50"):
         if not self.is_owner(ctx.guild, ctx.author.id):
-            return await ctx.send(embed=discord.Embed(description="✕ Only server owner", color=EMBED_COLOR))
+            return await ctx.send(embed=discord.Embed(description="✖️ Only server owner", color=EMBED_COLOR))
 
         if self.active_copies.get(ctx.guild.id):
-            return await ctx.send(embed=discord.Embed(description="✕ Copy already running", color=EMBED_COLOR))
+            return await ctx.send(embed=discord.Embed(description="✖️ Copy already running", color=EMBED_COLOR))
 
         copy_all = amount.lower() == 'all'
         limit = None if copy_all else min(int(amount) if amount.isdigit() else 50, 1000)
@@ -233,11 +233,11 @@ class Mirror(commands.Cog):
         try:
             dest_id = int(destination_id.strip('<>#'))
         except:
-            return await ctx.send(embed=discord.Embed(description="✕ Invalid ID", color=EMBED_COLOR))
+            return await ctx.send(embed=discord.Embed(description="✖️ Invalid ID", color=EMBED_COLOR))
 
         dest_channel = self.bot.get_channel(dest_id)
         if not dest_channel:
-            return await ctx.send(embed=discord.Embed(description="✕ Channel not found", color=EMBED_COLOR))
+            return await ctx.send(embed=discord.Embed(description="✖️ Channel not found", color=EMBED_COLOR))
 
         async with self.copy_locks[ctx.guild.id]:
             self.active_copies[ctx.guild.id] = True
@@ -255,7 +255,7 @@ class Mirror(commands.Cog):
                 total = len(messages)
 
                 if total == 0:
-                    return await status_msg.edit(embed=discord.Embed(description="✕ No messages", color=EMBED_COLOR))
+                    return await status_msg.edit(embed=discord.Embed(description="✖️ No messages", color=EMBED_COLOR))
 
                 await status_msg.edit(embed=discord.Embed(description=f"⟳ Copying {total} messages...", color=EMBED_COLOR))
 
@@ -292,7 +292,7 @@ class Mirror(commands.Cog):
                         except:
                             pass
 
-                await status_msg.edit(embed=discord.Embed(description=f"+ Copied {copied}/{total} messages", color=EMBED_COLOR))
+                await status_msg.edit(embed=discord.Embed(description=f"➕ Copied {copied}/{total} messages", color=EMBED_COLOR))
             finally:
                 self.active_copies[ctx.guild.id] = False
 
@@ -305,11 +305,11 @@ class Mirror(commands.Cog):
             dest_channel = self.bot.get_channel(dest_id)
             if dest_channel:
                 await dest_channel.send(embed=discord.Embed(description=f"Test from {ctx.guild.name}", color=EMBED_COLOR))
-                await ctx.send(embed=discord.Embed(description=f"+ Test sent to #{dest_channel.name}", color=EMBED_COLOR))
+                await ctx.send(embed=discord.Embed(description=f"➕ Test sent to #{dest_channel.name}", color=EMBED_COLOR))
             else:
-                await ctx.send(embed=discord.Embed(description="✕ Channel not found", color=EMBED_COLOR))
+                await ctx.send(embed=discord.Embed(description="✖️ Channel not found", color=EMBED_COLOR))
         except:
-            await ctx.send(embed=discord.Embed(description="✕ Invalid ID", color=EMBED_COLOR))
+            await ctx.send(embed=discord.Embed(description="✖️ Invalid ID", color=EMBED_COLOR))
 
     @mirror.command(name='cancel')
     @commands.guild_only()
@@ -317,7 +317,7 @@ class Mirror(commands.Cog):
     async def mirror_cancel(self, ctx):
         if self.active_copies.get(ctx.guild.id):
             self.active_copies[ctx.guild.id] = False
-            await ctx.send(embed=discord.Embed(description="+ Cancelled", color=EMBED_COLOR))
+            await ctx.send(embed=discord.Embed(description="➕ Cancelled", color=EMBED_COLOR))
         else:
             await ctx.send(embed=discord.Embed(description="› Nothing running", color=EMBED_COLOR))
 
