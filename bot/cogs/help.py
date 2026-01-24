@@ -38,17 +38,17 @@ class Help(commands.Cog):
             "› `/help utility` − General commands\n"
             "› `/help owner` − Bot owner only\n\n"
             "**Permission Levels**\n"
-            "👑 Server Owner − Full access\n"
-            "🛡️ Admin − Most commands\n"
-            "🔧 Mod − Basic moderation\n"
-            "🤖 Bot Owner − Bot management"
+            "› Server Owner − Full access\n"
+            "› Admin − Most commands\n"
+            "› Mod − Basic moderation\n"
+            "› Bot Owner − Bot management"
         )
         return embed
 
     def get_antinuke_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Anti-Nuke Protection** 👑 Server Owner\n\n"
+            "**Anti-Nuke Protection** Server Owner\n\n"
             "Protects against server destruction attacks.\n"
             "Instant punishment on first unauthorized action.\n\n"
             "**Status & Config**\n"
@@ -81,7 +81,7 @@ class Help(commands.Cog):
     def get_whitelist_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Unified Whitelist** 👑 Server Owner\n\n"
+            "**Unified Whitelist** Server Owner\n\n"
             "Whitelisted entries bypass:\n"
             "• All anti-nuke protection\n"
             "• Cannot be punished by bot\n"
@@ -109,7 +109,7 @@ class Help(commands.Cog):
     def get_backup_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Server Backup** 👑 Server Owner\n\n"
+            "**Server Backup** Server Owner\n\n"
             "Full server backup and restore system.\n\n"
             "**Backup Commands**\n"
             "› `/backup` − View all backups\n"
@@ -136,23 +136,23 @@ class Help(commands.Cog):
     def get_mod_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Moderation** 🛡️ Admin / 🔧 Mod\n\n"
-            "**Member Actions** 🛡️\n"
+            "**Moderation** Admin / 🔧 Mod\n\n"
+            "**Member Actions** \n"
             "› `/ban @user [reason]` − Ban member\n"
             "› `/kick @user [reason]` − Kick member\n"
             "› `/mute @user [duration]` − Timeout\n"
             "› `/unmute @user` − Remove timeout\n\n"
-            "**Role Management** 🛡️\n"
+            "**Role Management** \n"
             "› `/role @user @role` − Toggle role\n"
             "› `/addrole @user @role` − Add role\n"
             "› `/removerole @user @role` − Remove role\n\n"
-            "**Channel Management** 🔧\n"
+            "**Channel Management** \n"
             "› `/purge [amount]` − Delete messages\n"
             "› `/purge @user [amount]` − User msgs\n"
             "› `/slowmode [seconds]` − Set slowmode\n"
             "› `/lock` − Lock channel\n"
             "› `/unlock` − Unlock channel\n\n"
-            "**Other** 🛡️\n"
+            "**Other** \n"
             "› `/nick @user [name]` − Set nickname\n"
             "› `/warn @user [reason]` − Warn user"
         )
@@ -161,7 +161,7 @@ class Help(commands.Cog):
     def get_antiraid_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Anti-Raid** 👑 Server Owner\n\n"
+            "**Anti-Raid** Server Owner\n\n"
             "Protection against mass join attacks.\n\n"
             "**Status & Config**\n"
             "› `/antiraid` − View status\n"
@@ -190,7 +190,7 @@ class Help(commands.Cog):
     def get_antispam_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Anti-Spam** 👑 Server Owner\n\n"
+            "**Anti-Spam** Server Owner\n\n"
             "Protection against message spam.\n\n"
             "**Status & Config**\n"
             "› `/antispam` − View status\n"
@@ -205,7 +205,7 @@ class Help(commands.Cog):
             "**Exemptions**\n"
             "› `/antispam exempt @role`\n"
             "› `/antispam unexempt @role`\n\n"
-            "**Anti-Selfbot** 👑\n"
+            "**Anti-Selfbot** \n"
             "› `/antiselfbot` − View status\n"
             "› `/antiselfbot enable|disable`\n"
             "› `/antiselfbot action`\n\n"
@@ -221,13 +221,13 @@ class Help(commands.Cog):
     def get_lockdown_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Lockdown** 👑 Server Owner / 🛡️ Admin\n\n"
+            "**Lockdown** Server Owner / Admin\n\n"
             "Emergency server lockdown controls.\n\n"
-            "**Server Lockdown** 👑\n"
+            "**Server Lockdown** \n"
             "› `/serverlock [seconds]` − Lock server\n"
             "› `/serverunlock` − Unlock server\n"
             "› `/lockdownstatus` − View status\n\n"
-            "**Channel Lock** 🛡️\n"
+            "**Channel Lock** \n"
             "› `/lock` − Lock current channel\n"
             "› `/unlock` − Unlock current channel\n\n"
             "**Features**\n"
@@ -242,7 +242,7 @@ class Help(commands.Cog):
     def get_mirror_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Channel Mirror** 👑 Server Owner\n\n"
+            "**Channel Mirror** Server Owner\n\n"
             "Forward messages between channels/servers.\n\n"
             "**Setup Mirror**\n"
             "› `/mirror` − View active mirrors\n"
@@ -281,7 +281,7 @@ class Help(commands.Cog):
             "› `/serverinfo` − Server details\n"
             "› `/servericon` − Server icon\n"
             "› `/serverbanner` − Server banner\n\n"
-            "**Setup** 👑\n"
+            "**Setup** \n"
             "› `/setup` − Setup wizard\n"
             "› `/setlog #channel` − Set log\n\n"
             "**Links**\n"
@@ -293,7 +293,7 @@ class Help(commands.Cog):
     def get_owner_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Bot Owner Commands** 🤖\n\n"
+            "**Bot Owner Commands** \n\n"
             "Only bot owners can use these.\n\n"
             "**Bot Status**\n"
             "› `/botstatus` − View status\n"
@@ -366,13 +366,13 @@ class Help(commands.Cog):
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
             "**Quick Command Reference**\n\n"
-            "**Security** 👑\n"
+            "**Security** \n"
             "`/antinuke` `/wlist` `/backup` `/serverlock`\n\n"
-            "**Moderation** 🛡️\n"
+            "**Moderation** \n"
             "`/ban` `/kick` `/mute` `/purge` `/role`\n\n"
-            "**Protection** 👑\n"
+            "**Protection** \n"
             "`/antiraid` `/antispam` `/antiselfbot`\n\n"
-            "**Utility** 👤\n"
+            "**Utility** \n"
             "`/help` `/ping` `/userinfo` `/serverinfo`\n\n"
             "Use `/help <category>` for details"
         )
