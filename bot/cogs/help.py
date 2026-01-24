@@ -1,15 +1,16 @@
 """
-Custom Help Command Cog - Minimal Style
-All commands work with both ! and /
+Comprehensive Help Command - All Commands with Slash Support
+=============================================================
+Shows all commands, permissions, and features
 """
 import discord
 from discord.ext import commands
+from discord import app_commands
 from typing import Optional
 import logging
 
 logger = logging.getLogger('Offcialx.Help')
 
-# Minimal embed color
 EMBED_COLOR = 0x2b2d31
 
 
@@ -21,332 +22,360 @@ class Help(commands.Cog):
         self.bot.help_command = None
 
     def get_main_embed(self) -> discord.Embed:
-        """Main help embed"""
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
             "**Offcialx Security Bot**\n\n"
-            "Use `/command` or `!command`\n\n"
+            "All commands work with `/command` or `!command`\n\n"
             "**Categories**\n"
-            "› `/help antinuke` − Server protection\n"
-            "› `/help mod` − Moderation & Roles\n"
-            "› `/help whitelist` − Whitelist management\n"
-            "› `/help raid` − Anti-raid protection\n"
-            "› `/help spam` − Anti-spam system\n"
-            "› `/help lockdown` − Lockdown controls\n"
-            "› `/help mirror` − Cross-server forwarding\n"
+            "› `/help antinuke` − Anti-nuke protection\n"
+            "› `/help whitelist` − Trust management\n"
+            "› `/help backup` − Server backups\n"
+            "› `/help mod` − Moderation tools\n"
+            "› `/help antiraid` − Raid protection\n"
+            "› `/help antispam` − Spam protection\n"
+            "› `/help lockdown` − Server lockdown\n"
+            "› `/help mirror` − Message forwarding\n"
             "› `/help utility` − General commands\n"
-            "› `/help owner` − Bot owner commands\n\n"
-            "**Quick Start**\n"
-            "› `/setup` − Run setup wizard\n"
-            "› `/setlog #channel` − Set log channel\n"
-            "› `/wlist user @user` − Whitelist a user\n\n"
-            "**Popular Commands**\n"
-            "› `/role` − Manage member roles\n"
-            "› `/ban` `/kick` `/mute` − Moderation"
+            "› `/help owner` − Bot owner only\n\n"
+            "**Permission Levels**\n"
+            "👑 Server Owner − Full access\n"
+            "🛡️ Admin − Most commands\n"
+            "🔧 Mod − Basic moderation\n"
+            "🤖 Bot Owner − Bot management"
         )
         return embed
 
     def get_antinuke_embed(self) -> discord.Embed:
-        """Anti-nuke commands embed"""
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Anti-Nuke Commands**\n\n"
-            "**Status** (Server Owner Only)\n"
-            "› `antinuke` − View protection status\n"
-            "› `antinuke enable` − Enable protection\n"
-            "› `antinuke disable` − Disable protection\n"
-            "› `attackstats` − View blocked attacks\n\n"
-            "**Configuration**\n"
-            "› `setlog #channel` − Set log channel\n"
-            "› `punishment ban/kick` − Set punishment type\n\n"
-            "**Whitelist** (bypass anti-nuke + lockdown)\n"
-            "› `wlist` − View all whitelisted\n"
-            "› `wlist user @user` − Whitelist user\n"
-            "› `wlist role @role` − Whitelist role\n"
-            "› `wlist bot @bot` − Whitelist bot\n"
-            "› See `!help whitelist` for more\n\n"
-            "**Emergency**\n"
-            "› `serverlock [secs]` − Lock server\n"
-            "› `serverunlock` − Unlock server\n"
-            "› `lockdownstatus` − View lockdown status\n"
-            "› `nukewebhooks` − Delete all webhooks\n\n"
-            "**Recovery**\n"
-            "› `recover` − Restore ALL deleted channels\n"
-            "› `restore` − View deleted channels\n"
-            "› `restore_channel <num>` − Restore one channel\n"
-            "› `restore_clear` − Clear restore list\n\n"
-            "**Protection**\n"
-            "Server settings, vanity URL, and all changes\n"
-            "are monitored. Attackers are banned instantly."
-        )
-        return embed
-
-    def get_mod_embed(self) -> discord.Embed:
-        """Moderation commands embed"""
-        embed = discord.Embed(color=EMBED_COLOR)
-        embed.description = (
-            "**Moderation Commands**\n\n"
-            "**Member Actions** (Admin)\n"
-            "› `/ban` `!ban @user [reason]` − Ban member\n"
-            "› `/kick` `!kick @user [reason]` − Kick member\n"
-            "› `/mute` `!mute @user [time]` − Timeout member\n"
-            "› `/unmute` `!unmute @user` − Remove timeout\n\n"
-            "**Role Management** (Admin)\n"
-            "› `/role` − Toggle role (slash picker)\n"
-            "› `!role @user RoleName` − Toggle by name\n"
-            "› `!giverole @user RoleName` − Add role\n"
-            "› `!takerole @user RoleName` − Remove role\n\n"
-            "**Channel Management** (Manage Channels)\n"
-            "› `!purge [amount]` − Delete messages\n"
-            "› `!purge @user [amount]` − Delete user messages\n"
-            "› `!slowmode [secs]` − Set slowmode\n"
-            "› `!lock` − Lock channel\n"
-            "› `!unlockc` − Unlock channel\n\n"
-            "**Other** (Admin)\n"
-            "› `!nick @user [name]` − Set nickname\n"
-            "› `!serverlock [secs]` − Lock server"
+            "**Anti-Nuke Protection** 👑 Server Owner\n\n"
+            "Protects against server destruction attacks.\n"
+            "Instant punishment on first unauthorized action.\n\n"
+            "**Status & Config**\n"
+            "› `/antinuke` − View protection status\n"
+            "› `/antinuke_enable` − Enable protection\n"
+            "› `/antinuke_disable` − Disable protection\n"
+            "› `/setlog #channel` − Set security log\n"
+            "› `/punishment ban|kick` − Set punishment type\n"
+            "› `/attackstats` − View blocked attacks\n\n"
+            "**Emergency Controls**\n"
+            "› `/serverlock [seconds]` − Lock all channels\n"
+            "› `/serverunlock` − Unlock all channels\n"
+            "› `/lockdownstatus` − View lockdown status\n"
+            "› `/nukewebhooks` − Delete all webhooks\n\n"
+            "**Channel Recovery**\n"
+            "› `/restore` − View deleted channels\n"
+            "› `/restore_channel <num>` − Restore a channel\n"
+            "› `/restore_clear` − Clear restore list\n\n"
+            "**Protection Includes**\n"
+            "• Channel create/delete/rename\n"
+            "• Role create/delete/modify\n"
+            "• Webhook spam blocking\n"
+            "• Mass ban/kick detection\n"
+            "• Bot addition blocking\n"
+            "• Permission escalation\n"
+            "• Server settings changes"
         )
         return embed
 
     def get_whitelist_embed(self) -> discord.Embed:
-        """Whitelist commands embed"""
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Unified Whitelist** (Server Owner Only)\n\n"
+            "**Unified Whitelist** 👑 Server Owner\n\n"
             "Whitelisted entries bypass:\n"
-            "› All anti-nuke protection\n"
-            "› Cannot be punished\n"
-            "› Can send messages during lockdown\n\n"
+            "• All anti-nuke protection\n"
+            "• Cannot be punished by bot\n"
+            "• Can send during lockdown\n\n"
             "**Add to Whitelist**\n"
-            "› `wlist user @user` − Whitelist a user\n"
-            "› `wlist role @role` − Whitelist a role\n"
-            "› `wlist bot @bot` − Whitelist a bot\n\n"
+            "› `/wlist user @user` − Whitelist user\n"
+            "› `/wlist role @role` − Whitelist role\n"
+            "› `/wlist bot @bot` − Whitelist bot\n\n"
             "**Remove from Whitelist**\n"
-            "› `wlist remove user @user`\n"
-            "› `wlist remove role @role`\n"
-            "› `wlist remove bot @bot`\n\n"
+            "› `/wlist remove user @user`\n"
+            "› `/wlist remove role @role`\n"
+            "› `/wlist remove bot @bot`\n\n"
             "**View Whitelist**\n"
-            "› `wlist` − View all whitelisted\n"
-            "› `wlist users` − View whitelisted users\n"
-            "› `wlist roles` − View whitelisted roles\n"
-            "› `wlist bots` − View whitelisted bots\n\n"
+            "› `/wlist` − View all whitelisted\n"
+            "› `/wlist users` − View users only\n"
+            "› `/wlist roles` − View roles only\n"
+            "› `/wlist bots` − View bots only\n\n"
             "**Clear Whitelist**\n"
-            "› `wlist clear` − Clear all\n"
-            "› `wlist clear users` − Clear users only\n"
-            "› `wlist clear roles` − Clear roles only\n"
-            "› `wlist clear bots` − Clear bots only\n\n"
-            "**Database**\n"
-            "All whitelist data persists in database."
+            "› `/wlist clear` − Clear everything\n"
+            "› `/wlist clear users|roles|bots`\n\n"
+            "**Note:** All data persists in database"
         )
         return embed
 
-    def get_raid_embed(self) -> discord.Embed:
-        """Anti-raid commands embed"""
+    def get_backup_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Anti-Raid Commands** (Server Owner Only)\n\n"
-            "**Status**\n"
-            "› `antiraid` − View status\n"
-            "› `antiraid status` − Detailed status\n\n"
-            "**Configuration**\n"
-            "› `antiraid enable` − Enable protection\n"
-            "› `antiraid disable` − Disable protection\n"
-            "› `antiraid action <kick/ban>` − Set action\n"
-            "› `antiraid setlog #channel` − Set log channel\n\n"
+            "**Server Backup** 👑 Server Owner\n\n"
+            "Full server backup and restore system.\n\n"
+            "**Backup Commands**\n"
+            "› `/backup` − View all backups\n"
+            "› `/backup create` − Create new backup\n"
+            "› `/backup list` − List all backups\n"
+            "› `/backup info [version]` − Backup details\n"
+            "› `/backup restore [version]` − Restore backup\n"
+            "› `/backup delete <version>` − Delete backup\n"
+            "› `/backup clear` − Delete all backups\n\n"
+            "**Settings**\n"
+            "› `/backup auto` − Toggle auto-backup\n"
+            "› `/backup setlog #channel` − Set log\n"
+            "› `/backup settings` − View settings\n\n"
+            "**What Gets Backed Up**\n"
+            "• Server name, icon, banner\n"
+            "• All roles with permissions\n"
+            "• All channels with permissions\n"
+            "• Categories and positions\n"
+            "• Channel topics, slowmode, NSFW\n\n"
+            "**Limits:** Max 5 backups per server"
+        )
+        return embed
+
+    def get_mod_embed(self) -> discord.Embed:
+        embed = discord.Embed(color=EMBED_COLOR)
+        embed.description = (
+            "**Moderation** 🛡️ Admin / 🔧 Mod\n\n"
+            "**Member Actions** 🛡️\n"
+            "› `/ban @user [reason]` − Ban member\n"
+            "› `/kick @user [reason]` − Kick member\n"
+            "› `/mute @user [duration]` − Timeout\n"
+            "› `/unmute @user` − Remove timeout\n\n"
+            "**Role Management** 🛡️\n"
+            "› `/role @user @role` − Toggle role\n"
+            "› `/addrole @user @role` − Add role\n"
+            "› `/removerole @user @role` − Remove role\n\n"
+            "**Channel Management** 🔧\n"
+            "› `/purge [amount]` − Delete messages\n"
+            "› `/purge @user [amount]` − User msgs\n"
+            "› `/slowmode [seconds]` − Set slowmode\n"
+            "› `/lock` − Lock channel\n"
+            "› `/unlock` − Unlock channel\n\n"
+            "**Other** 🛡️\n"
+            "› `/nick @user [name]` − Set nickname\n"
+            "› `/warn @user [reason]` − Warn user"
+        )
+        return embed
+
+    def get_antiraid_embed(self) -> discord.Embed:
+        embed = discord.Embed(color=EMBED_COLOR)
+        embed.description = (
+            "**Anti-Raid** 👑 Server Owner\n\n"
+            "Protection against mass join attacks.\n\n"
+            "**Status & Config**\n"
+            "› `/antiraid` − View status\n"
+            "› `/antiraid enable` − Enable\n"
+            "› `/antiraid disable` − Disable\n"
+            "› `/antiraid action kick|ban` − Set action\n"
+            "› `/antiraid setlog #channel` − Set log\n\n"
             "**VPN Detection**\n"
-            "› `vpn` − View VPN status\n"
-            "› `vpn enable` − Enable detection\n"
-            "› `vpn disable` − Disable detection\n"
-            "› `vpn action <kick/ban>` − Set action\n\n"
-            "**Ban Sync**\n"
-            "› `bansync` − View network\n"
-            "› `bansync create` − Create network\n"
-            "› `bansync list` − List servers\n\n"
-            "**Database**\n"
-            "All settings persist in database."
+            "› `/vpn` − View VPN status\n"
+            "› `/vpn enable` − Enable detection\n"
+            "› `/vpn disable` − Disable detection\n"
+            "› `/vpn action kick|ban` − Set action\n\n"
+            "**Ban Sync Network**\n"
+            "› `/bansync` − View network\n"
+            "› `/bansync create` − Create network\n"
+            "› `/bansync join <code>` − Join network\n"
+            "› `/bansync list` − List servers\n\n"
+            "**Detection Includes**\n"
+            "• Mass join detection\n"
+            "• New account filtering\n"
+            "• VPN/Proxy blocking\n"
+            "• Cross-server ban sync"
         )
         return embed
 
-    def get_spam_embed(self) -> discord.Embed:
-        """Anti-spam commands embed"""
+    def get_antispam_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Anti-Spam Commands** (Server Owner Only)\n\n"
-            "**Status**\n"
-            "› `antispam` − View spam protection\n"
-            "› `antispam status` − Detailed status\n\n"
-            "**Configuration**\n"
-            "› `antispam enable` − Enable protection\n"
-            "› `antispam disable` − Disable protection\n"
-            "› `antispam setlog #channel` − Set log\n"
-            "› `antispam action <warn/mute/kick/ban>`\n"
-            "› `antispam limit <count> <seconds>`\n\n"
+            "**Anti-Spam** 👑 Server Owner\n\n"
+            "Protection against message spam.\n\n"
+            "**Status & Config**\n"
+            "› `/antispam` − View status\n"
+            "› `/antispam enable` − Enable\n"
+            "› `/antispam disable` − Disable\n"
+            "› `/antispam action warn|mute|kick|ban`\n"
+            "› `/antispam setlog #channel` − Set log\n\n"
             "**Link Filtering**\n"
-            "› `antispam links <true/false>` − Allow/block links\n"
-            "› `antispam invites <true/false>` − Allow/block invites\n"
-            "› `antispam shorteners <true/false>` − Block URL shorteners\n"
-            "› `antispam phishing <true/false>` − Block phishing\n\n"
+            "› `/antispam links true|false`\n"
+            "› `/antispam invites true|false`\n"
+            "› `/antispam phishing true|false`\n\n"
             "**Exemptions**\n"
-            "› `antispam exempt @role` − Exempt role\n"
-            "› `antispam unexempt @role` − Remove exemption\n\n"
-            "**Anti-Selfbot** (Server Owner Only)\n"
-            "› `antiselfbot` − View status\n"
-            "› `antiselfbot enable/disable` − Toggle\n"
-            "› `antiselfbot action <alert/mute/kick/ban>`\n"
-            "Detects: embed spam, fast reactions, nitro sniping\n\n"
-            "**Database**\n"
-            "All settings persist in database."
+            "› `/antispam exempt @role`\n"
+            "› `/antispam unexempt @role`\n\n"
+            "**Anti-Selfbot** 👑\n"
+            "› `/antiselfbot` − View status\n"
+            "› `/antiselfbot enable|disable`\n"
+            "› `/antiselfbot action`\n\n"
+            "**Detection Includes**\n"
+            "• Message flood\n"
+            "• Duplicate messages\n"
+            "• Mention spam\n"
+            "• Invite links\n"
+            "• Phishing links"
         )
         return embed
 
     def get_lockdown_embed(self) -> discord.Embed:
-        """Lockdown commands embed"""
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Lockdown Commands** (Server Owner Only)\n\n"
-            "**Server Lockdown**\n"
-            "› `lockdown [duration] [reason]` − Lock server\n"
-            "› `lockdown end` − End lockdown\n"
-            "› `lockdown status` − View status\n\n"
-            "**Configuration**\n"
-            "› `lockdown setlog #channel` − Set log\n"
-            "› `lockdown duration <seconds>` − Default duration\n\n"
-            "**Channel Locking** (Manage Channels)\n"
-            "› `lock` − Lock current channel\n"
-            "› `unlockc` − Unlock current channel\n\n"
-            "**Emergency**\n"
-            "› `panic` − Instant full lockdown\n"
-            "› `serverlock [secs]` − Quick lock\n"
-            "› `serverunlock` − Quick unlock\n\n"
-            "**Database**\n"
-            "All settings persist in database."
-        )
-        return embed
-
-    def get_owner_embed(self) -> discord.Embed:
-        """Bot owner commands embed"""
-        embed = discord.Embed(color=EMBED_COLOR)
-        embed.description = (
-            "**Bot Owner Commands**\n\n"
-            "**Bot Status**\n"
-            "› `botstatus` − View current status\n"
-            "› `botstatus watching <text>` − Set watching\n"
-            "› `botstatus playing <text>` − Set playing\n"
-            "› `botstatus listening <text>` − Set listening\n"
-            "› `botstatus streaming <url> <text>` − Set streaming\n"
-            "› `botstatus online/idle/dnd/invisible` − Set status\n"
-            "› `botstatus clear` − Remove activity\n\n"
-            "**Server Management**\n"
-            "› `servers` − View server count & stats\n"
-            "› `serverlist` − List all servers with IDs\n"
-            "› `leaveserver <id>` − Leave a server\n\n"
-            "**Join/Leave Logging**\n"
-            "› `setjoinlog #channel` − Set log channel\n"
-            "Bot owners receive DM when bot joins/leaves\n\n"
-            "**Bot Information**\n"
-            "› `ownerinfo` − View bot stats & uptime\n\n"
-            "**Anti-Nuke Settings**\n"
-            "› `punishment ban/kick` − Set punishment type\n"
-            "› `antiselfbot action ban/kick/mute/alert`"
-        )
-        return embed
-
-    def get_utility_embed(self) -> discord.Embed:
-        """Utility commands embed"""
-        embed = discord.Embed(color=EMBED_COLOR)
-        embed.description = (
-            "**Utility Commands**\n\n"
-            "**Information**\n"
-            "› `help [category]` − This menu\n"
-            "› `ping` − Check latency\n"
-            "› `botstats` − Bot statistics\n"
-            "› `info` − Bot information\n\n"
-            "**User Info**\n"
-            "› `userinfo [@user]` − User details\n"
-            "› `avatar [@user]` − User avatar\n"
-            "› `banner [@user]` − User banner\n\n"
-            "**Server Info**\n"
-            "› `serverinfo` − Server details\n"
-            "› `servericon` − Server icon\n"
-            "› `serverbanner` − Server banner\n"
-            "› `serverprofile` − Full server profile\n\n"
-            "**Links**\n"
-            "› `invite` − Invite link\n"
-            "› `support` − Support server\n\n"
-            "**Setup** (Server Owner)\n"
-            "› `setup` − Setup wizard\n"
-            "› `setlog #channel` − Set log channel\n\n"
-            "**Backup** (Server Owner)\n"
-            "› `backup create` − Create backup\n"
-            "› `backup list` − List backups\n\n"
-            "**Sync** (Bot Owner)\n"
-            "› `sync` − Sync global commands\n"
-            "› `syncguild` − Sync to this server"
+            "**Lockdown** 👑 Server Owner / 🛡️ Admin\n\n"
+            "Emergency server lockdown controls.\n\n"
+            "**Server Lockdown** 👑\n"
+            "› `/serverlock [seconds]` − Lock server\n"
+            "› `/serverunlock` − Unlock server\n"
+            "› `/lockdownstatus` − View status\n\n"
+            "**Channel Lock** 🛡️\n"
+            "› `/lock` − Lock current channel\n"
+            "› `/unlock` − Unlock current channel\n\n"
+            "**Features**\n"
+            "• Backs up original permissions\n"
+            "• Restores permissions on unlock\n"
+            "• Whitelisted users can still send\n"
+            "• Admins/Mods bypass lockdown\n"
+            "• Auto-unlock after duration"
         )
         return embed
 
     def get_mirror_embed(self) -> discord.Embed:
-        """Mirror commands embed"""
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Channel Mirror** (Server Owner Only)\n\n"
-            "Forward messages from one channel to another,\n"
-            "even across different servers!\n\n"
+            "**Channel Mirror** 👑 Server Owner\n\n"
+            "Forward messages between channels/servers.\n\n"
             "**Setup Mirror**\n"
-            "› `mirror add #source <dest_id>` − Create mirror\n"
-            "› `mirror remove #source` − Remove all mirrors\n"
-            "› `mirror remove #source <dest_id>` − Remove specific\n\n"
+            "› `/mirror` − View active mirrors\n"
+            "› `/mirror add #source <dest_id>`\n"
+            "› `/mirror remove #source [dest_id]`\n"
+            "› `/mirror test <channel_id>`\n\n"
             "**Copy History**\n"
-            "› `mirror copy #source <dest_id> [amount]` − Copy messages\n"
-            "› Copies up to 100 messages at once\n\n"
-            "**View & Test**\n"
-            "› `mirror` − View all active mirrors\n"
-            "› `mirror test <channel_id>` − Test connection\n\n"
-            "**How to Get Channel ID:**\n"
-            "› Enable Developer Mode in Discord settings\n"
-            "› Right-click channel → Copy ID\n\n"
-            "**Example:**\n"
-            "› `!mirror add #announcements 123456789`\n"
-            "› Messages in #announcements will forward\n"
-            "› to channel 123456789 in another server"
+            "› `/mirror copy #src <dest> 50`\n"
+            "› `/mirror copy #src <dest> all`\n"
+            "› `/mirror cancel` − Stop copying\n\n"
+            "**Features**\n"
+            "• Cross-server forwarding\n"
+            "• File/image links preserved\n"
+            "• Rate limit protected\n"
+            "• Database persistent\n"
+            "• Queue system (one at a time)\n\n"
+            "**Get Channel ID**\n"
+            "Enable Developer Mode → Right-click → Copy ID"
         )
         return embed
 
-    @commands.hybrid_command(name="help", aliases=["h", "cmds", "commands"])
+    def get_utility_embed(self) -> discord.Embed:
+        embed = discord.Embed(color=EMBED_COLOR)
+        embed.description = (
+            "**Utility Commands** 👤 Everyone\n\n"
+            "**Information**\n"
+            "› `/help [category]` − This menu\n"
+            "› `/ping` − Bot latency\n"
+            "› `/info` − Bot information\n"
+            "› `/botstats` − Bot statistics\n\n"
+            "**User Info**\n"
+            "› `/userinfo [@user]` − User details\n"
+            "› `/avatar [@user]` − User avatar\n"
+            "› `/banner [@user]` − User banner\n\n"
+            "**Server Info**\n"
+            "› `/serverinfo` − Server details\n"
+            "› `/servericon` − Server icon\n"
+            "› `/serverbanner` − Server banner\n\n"
+            "**Setup** 👑\n"
+            "› `/setup` − Setup wizard\n"
+            "› `/setlog #channel` − Set log\n\n"
+            "**Links**\n"
+            "› `/invite` − Invite bot\n"
+            "› `/support` − Support server"
+        )
+        return embed
+
+    def get_owner_embed(self) -> discord.Embed:
+        embed = discord.Embed(color=EMBED_COLOR)
+        embed.description = (
+            "**Bot Owner Commands** 🤖\n\n"
+            "Only bot owners can use these.\n\n"
+            "**Bot Status**\n"
+            "› `/botstatus` − View status\n"
+            "› `/botstatus watching <text>`\n"
+            "› `/botstatus playing <text>`\n"
+            "› `/botstatus listening <text>`\n"
+            "› `/botstatus streaming <url> <text>`\n"
+            "› `/botstatus online|idle|dnd|invisible`\n"
+            "› `/botstatus clear` − Remove activity\n\n"
+            "**Server Management**\n"
+            "› `/servers` − Server count\n"
+            "› `/serverlist` − All servers\n"
+            "› `/leaveserver <id>` − Leave server\n\n"
+            "**Logging**\n"
+            "› `/setjoinlog #channel` − Join/leave log\n\n"
+            "**Sync**\n"
+            "› `/sync` − Sync global commands\n"
+            "› `/syncguild` − Sync to this server\n\n"
+            "**Info**\n"
+            "› `/ownerinfo` − Bot stats & uptime"
+        )
+        return embed
+
+    @commands.hybrid_command(name="help", aliases=["h", "commands"])
+    @app_commands.describe(category="Command category to view")
     async def help_command(self, ctx: commands.Context, *, category: Optional[str] = None):
-        """Show help menu"""
+        """Show help menu with all commands"""
         if category:
             cat = category.lower().strip()
-
-            if cat in ["antinuke", "anti-nuke", "nuke", "an", "protection", "security"]:
-                embed = self.get_antinuke_embed()
-            elif cat in ["mod", "moderation", "moderate", "admin", "mods"]:
-                embed = self.get_mod_embed()
-            elif cat in ["whitelist", "wl", "trust", "trusted", "white"]:
-                embed = self.get_whitelist_embed()
-            elif cat in ["raid", "antiraid", "anti-raid", "vpn", "bansync", "raids"]:
-                embed = self.get_raid_embed()
-            elif cat in ["spam", "antispam", "anti-spam", "as"]:
-                embed = self.get_spam_embed()
-            elif cat in ["lockdown", "ld", "lock", "emergency"]:
-                embed = self.get_lockdown_embed()
-            elif cat in ["utility", "util", "info", "general", "core", "backup", "utils"]:
-                embed = self.get_utility_embed()
-            elif cat in ["owner", "admin", "botadmin", "bot", "status", "servers"]:
-                embed = self.get_owner_embed()
-            elif cat in ["mirror", "forward", "copy", "sync", "crossserver"]:
-                embed = self.get_mirror_embed()
-            else:
-                embed = self.get_main_embed()
+            embeds = {
+                "antinuke": self.get_antinuke_embed,
+                "anti-nuke": self.get_antinuke_embed,
+                "nuke": self.get_antinuke_embed,
+                "protection": self.get_antinuke_embed,
+                "whitelist": self.get_whitelist_embed,
+                "wlist": self.get_whitelist_embed,
+                "trust": self.get_whitelist_embed,
+                "backup": self.get_backup_embed,
+                "backups": self.get_backup_embed,
+                "restore": self.get_backup_embed,
+                "mod": self.get_mod_embed,
+                "moderation": self.get_mod_embed,
+                "admin": self.get_mod_embed,
+                "antiraid": self.get_antiraid_embed,
+                "raid": self.get_antiraid_embed,
+                "vpn": self.get_antiraid_embed,
+                "antispam": self.get_antispam_embed,
+                "spam": self.get_antispam_embed,
+                "lockdown": self.get_lockdown_embed,
+                "lock": self.get_lockdown_embed,
+                "mirror": self.get_mirror_embed,
+                "forward": self.get_mirror_embed,
+                "copy": self.get_mirror_embed,
+                "utility": self.get_utility_embed,
+                "util": self.get_utility_embed,
+                "info": self.get_utility_embed,
+                "owner": self.get_owner_embed,
+                "bot": self.get_owner_embed,
+            }
+            embed_func = embeds.get(cat, self.get_main_embed)
+            embed = embed_func()
         else:
             embed = self.get_main_embed()
 
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(name="test", aliases=["t"])
-    async def test_cmd(self, ctx: commands.Context):
-        """Test command"""
-        embed = discord.Embed(description="+ Bot is working", color=EMBED_COLOR)
+    @commands.hybrid_command(name="commands", aliases=["cmds"])
+    async def commands_list(self, ctx: commands.Context):
+        """Quick command reference"""
+        embed = discord.Embed(color=EMBED_COLOR)
+        embed.description = (
+            "**Quick Command Reference**\n\n"
+            "**Security** 👑\n"
+            "`/antinuke` `/wlist` `/backup` `/serverlock`\n\n"
+            "**Moderation** 🛡️\n"
+            "`/ban` `/kick` `/mute` `/purge` `/role`\n\n"
+            "**Protection** 👑\n"
+            "`/antiraid` `/antispam` `/antiselfbot`\n\n"
+            "**Utility** 👤\n"
+            "`/help` `/ping` `/userinfo` `/serverinfo`\n\n"
+            "Use `/help <category>` for details"
+        )
         await ctx.send(embed=embed)
 
 
