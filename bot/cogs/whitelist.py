@@ -58,7 +58,7 @@ class Whitelist(commands.Cog):
     async def owner_check(self, ctx) -> bool:
         """Check ownership and send error if not owner"""
         if not self.is_owner(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can manage whitelist", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Only server owner can manage whitelist", color=EMBED_COLOR)
             await ctx.send(embed=embed)
             return False
         return True
@@ -245,7 +245,7 @@ class Whitelist(commands.Cog):
                 logger.warning(f'Failed to save whitelisted user: {e}')
 
         embed = discord.Embed(
-            description=f"+ Added {user.mention} to whitelist\n› Bypasses anti-nuke + lockdown",
+            description=f"➕ Added {user.mention} to whitelist\n› Bypasses anti-nuke + lockdown",
             color=EMBED_COLOR
         )
         await ctx.send(embed=embed)
@@ -259,7 +259,7 @@ class Whitelist(commands.Cog):
             return
 
         if role.is_default():
-            embed = discord.Embed(description="✕ Cannot whitelist @everyone", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot whitelist @everyone", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         await self.load_guild_whitelist(ctx.guild.id)
@@ -278,7 +278,7 @@ class Whitelist(commands.Cog):
                 logger.warning(f'Failed to save whitelisted role: {e}')
 
         embed = discord.Embed(
-            description=f"+ Added {role.mention} to whitelist\n› All members bypass anti-nuke + lockdown",
+            description=f"➕ Added {role.mention} to whitelist\n› All members bypass anti-nuke + lockdown",
             color=EMBED_COLOR
         )
         await ctx.send(embed=embed)
@@ -292,7 +292,7 @@ class Whitelist(commands.Cog):
             return
 
         if not bot.bot:
-            embed = discord.Embed(description="✕ That's not a bot. Use `wlist user` for users", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ That's not a bot. Use `wlist user` for users", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         await self.load_guild_whitelist(ctx.guild.id)
@@ -311,7 +311,7 @@ class Whitelist(commands.Cog):
                 logger.warning(f'Failed to save whitelisted bot: {e}')
 
         embed = discord.Embed(
-            description=f"+ Added {bot.mention} to whitelist\n› Bypasses anti-nuke + lockdown",
+            description=f"➕ Added {bot.mention} to whitelist\n› Bypasses anti-nuke + lockdown",
             color=EMBED_COLOR
         )
         await ctx.send(embed=embed)
@@ -357,7 +357,7 @@ class Whitelist(commands.Cog):
             except Exception as e:
                 logger.warning(f'Failed to remove whitelisted user: {e}')
 
-        embed = discord.Embed(description=f"− Removed {user.mention} from whitelist", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➖ Removed {user.mention} from whitelist", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @wlist_remove.command(name='role')
@@ -383,7 +383,7 @@ class Whitelist(commands.Cog):
             except Exception as e:
                 logger.warning(f'Failed to remove whitelisted role: {e}')
 
-        embed = discord.Embed(description=f"− Removed {role.mention} from whitelist", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➖ Removed {role.mention} from whitelist", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @wlist_remove.command(name='bot')
@@ -395,7 +395,7 @@ class Whitelist(commands.Cog):
             return
 
         if not bot.bot:
-            embed = discord.Embed(description="✕ That's not a bot", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ That's not a bot", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         await self.load_guild_whitelist(ctx.guild.id)
@@ -413,7 +413,7 @@ class Whitelist(commands.Cog):
             except Exception as e:
                 logger.warning(f'Failed to remove whitelisted bot: {e}')
 
-        embed = discord.Embed(description=f"− Removed {bot.mention} from whitelist", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➖ Removed {bot.mention} from whitelist", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     # ==================== CLEAR COMMANDS ====================
@@ -428,7 +428,7 @@ class Whitelist(commands.Cog):
 
         # Extra safety: only server owner can clear
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only server owner can clear whitelist", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Only server owner can clear whitelist", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         await self.load_guild_whitelist(ctx.guild.id)
@@ -457,7 +457,7 @@ class Whitelist(commands.Cog):
                 except Exception as e:
                     logger.warning(f'Failed to clear whitelist from database: {e}')
 
-            embed = discord.Embed(description=f"+ Cleared entire whitelist `{total} entries`", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Cleared entire whitelist `{total} entries`", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
         elif category.lower() == 'users':
@@ -469,7 +469,7 @@ class Whitelist(commands.Cog):
                     except:
                         pass
             self.whitelisted_users[ctx.guild.id] = set()
-            embed = discord.Embed(description=f"+ Cleared `{count}` whitelisted users", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Cleared `{count}` whitelisted users", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
         elif category.lower() == 'roles':
@@ -481,7 +481,7 @@ class Whitelist(commands.Cog):
                     except:
                         pass
             self.whitelisted_roles[ctx.guild.id] = set()
-            embed = discord.Embed(description=f"+ Cleared `{count}` whitelisted roles", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Cleared `{count}` whitelisted roles", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
         elif category.lower() == 'bots':
@@ -493,7 +493,7 @@ class Whitelist(commands.Cog):
                     except:
                         pass
             self.whitelisted_bots[ctx.guild.id] = set()
-            embed = discord.Embed(description=f"+ Cleared `{count}` whitelisted bots", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Cleared `{count}` whitelisted bots", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
         else:
