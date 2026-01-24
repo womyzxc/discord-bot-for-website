@@ -321,9 +321,10 @@ class OffcialxBot(commands.Bot):
             logger.info(f'  📊 AntiNuke: {total_trusted} trusted users, {total_bots} trusted bots loaded')
 
         if whitelist:
-            total_wl_users = sum(len(users) for users in whitelist.whitelists.values())
+            total_wl_users = sum(len(users) for users in whitelist.whitelisted_users.values())
             total_wl_roles = sum(len(roles) for roles in whitelist.whitelisted_roles.values())
-            logger.info(f'  📊 Whitelist: {total_wl_users} users, {total_wl_roles} roles loaded')
+            total_wl_bots = sum(len(bots) for bots in whitelist.whitelisted_bots.values())
+            logger.info(f'  📊 Whitelist: {total_wl_users} users, {total_wl_bots} bots, {total_wl_roles} roles loaded')
 
         logger.info('✅ All settings preloaded from database - trusted users/roles are now active!')
 

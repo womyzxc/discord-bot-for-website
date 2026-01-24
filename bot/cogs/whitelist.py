@@ -129,6 +129,13 @@ class Whitelist(commands.Cog):
         """Check if a role is whitelisted"""
         return role_id in self.whitelisted_roles.get(guild_id, set())
 
+    def has_whitelisted_role(self, guild_id: int, member: discord.Member) -> bool:
+        """Check if a member has any whitelisted role"""
+        if not member:
+            return False
+        member_role_ids = {r.id for r in member.roles}
+        return bool(member_role_ids & self.whitelisted_roles.get(guild_id, set()))
+
     def get_whitelisted_users(self, guild_id: int) -> Set[int]:
         """Get all whitelisted user IDs"""
         return self.whitelisted_users.get(guild_id, set())
