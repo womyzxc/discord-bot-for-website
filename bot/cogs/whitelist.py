@@ -94,6 +94,10 @@ class Whitelist(commands.Cog):
         for guild in self.bot.guilds:
             await self.load_guild_whitelist(guild.id)
 
+    async def preload_all_settings(self):
+        """Preload whitelist for all guilds (called by main.py on startup)"""
+        await self.preload_all_guilds()
+
     # ==================== CHECK METHODS (Used by Anti-Nuke) ====================
 
     def is_whitelisted(self, guild_id: int, user_id: int) -> bool:
@@ -576,5 +580,4 @@ class Whitelist(commands.Cog):
 async def setup(bot):
     cog = Whitelist(bot)
     await bot.add_cog(cog)
-    # Preload whitelist data after cog is added
-    bot.loop.create_task(cog.preload_all_guilds())
+    # Note: preload_all_settings() is called by main.py after database is injected
