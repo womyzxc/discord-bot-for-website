@@ -374,28 +374,29 @@ class AntiNuke(commands.Cog):
         )
 
     def is_trusted(self, guild: discord.Guild, user_id: int) -> bool:
-        """Check if a user is trusted (immune to anti-nuke)"""
+        """Check if a user is trusted (immune to anti-nuke) using unified whitelist"""
+        # Always trust the bot itself
         if user_id == self.bot.user.id:
             return True
+        # Bot owners are always trusted
         if user_id in self.owner_ids:
             return True
+        # Server owner is always trusted
         if user_id == guild.owner_id:
             return True
+
+        # Check unified whitelist cog (includes users, bots, and roles)
+        whitelist_cog = self.bot.get_cog('Whitelist')
+        if whitelist_cog:
+            # This checks: whitelisted_users, whitelisted_bots, and whitelisted_roles
+            if whitelist_cog.is_whitelisted(guild.id, user_id):
+                return True
+
+        # Fallback to local caches (for backwards compatibility during transition)
         if user_id in self.whitelisted.get(guild.id, set()):
             return True
         if user_id in self.trusted_bots.get(guild.id, set()):
             return True
-
-        # Check Whitelist cog for user whitelist and role whitelist
-        whitelist_cog = self.bot.get_cog('Whitelist')
-        if whitelist_cog:
-            # Check if user is in wlist add whitelist
-            if whitelist_cog.is_whitelisted(guild.id, user_id):
-                return True
-            # Check if user has a whitelisted role
-            member = guild.get_member(user_id)
-            if member and whitelist_cog.has_whitelisted_role(guild.id, member):
-                return True
 
         return False
 
@@ -2336,224 +2337,23 @@ class AntiNuke(commands.Cog):
         embed = discord.Embed(description=f"+ Anti-nuke punishment set to `{punishment_type}`", color=0x2b2d31)
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(name="trust", description="Add a user to the trusted whitelist")
-    @commands.guild_only()
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.has_permissions(administrator=True)
-    async def whitelist_add(self, ctx: commands.Context, user: discord.Member):
-        """Add a user to the trusted whitelist"""
-        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can add trusted users", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-        self.whitelisted[ctx.guild.id].add(user.id)
-        # Save to database
-        if self.db:
-            try:
-                await self.db.add_trusted_user(ctx.guild.id, user.id)
-            except Exception as e:
-                logger.warning(f'Failed to save trusted user to database: {e}')
-        embed = discord.Embed(description=f"+ Added {user.mention} to trusted users", color=0x2b2d31)
-        await ctx.send(embed=embed)
+    # ==================== WHITELIST COMMANDS MOVED ====================
+    # All whitelist commands are now in the unified whitelist.py cog
+    # Use: !wlist user, !wlist role, !wlist bot
+    # Use: !wlist remove user, !wlist remove role, !wlist remove bot
+    # Use: !wlist (to view all whitelisted entries)
 
-    @commands.hybrid_command(name="untrust", description="Remove a user from the trusted whitelist")
-    @commands.guild_only()
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.has_permissions(administrator=True)
-    async def whitelist_remove(self, ctx: commands.Context, user: discord.Member):
-        """Remove a user from the trusted whitelist"""
-        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can remove trusted users", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-        self.whitelisted[ctx.guild.id].discard(user.id)
-        # Remove from database
-        if self.db:
-            try:
-                await self.db.remove_trusted_user(ctx.guild.id, user.id)
-            except Exception as e:
-                logger.warning(f'Failed to remove trusted user from database: {e}')
-        embed = discord.Embed(description=f"− Removed {user.mention} from trusted users", color=0x2b2d31)
-        await ctx.send(embed=embed)
+    def _get_whitelist_cog(self):
+        """Get the unified whitelist cog"""
+        return self.bot.get_cog('Whitelist')
 
-    @commands.hybrid_command(name="trusted", description="View all trusted users")
-    @commands.guild_only()
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.has_permissions(administrator=True)
-    async def whitelist_list(self, ctx: commands.Context):
-        """View all whitelisted users"""
-        whitelisted = self.whitelisted.get(ctx.guild.id, set())
-        if not whitelisted:
-            embed = discord.Embed(description="No trusted users", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-
-        users = []
-        for uid in whitelisted:
-            member = ctx.guild.get_member(uid)
-            if member:
-                users.append(f"› {member.mention}")
-            else:
-                users.append(f"› `{uid}`")
-
-        embed = discord.Embed(color=0x2b2d31)
-        embed.description = f"**Trusted Users**\n\n" + "\n".join(users)
-        await ctx.send(embed=embed)
-
-    @commands.hybrid_command(name="trustbot", description="Add a bot to the trusted bots list")
-    @commands.guild_only()
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.has_permissions(administrator=True)
-    async def trust_bot(self, ctx: commands.Context, bot: discord.Member):
-        """Add a bot to the trusted bots list"""
-        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can trust bots", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-        if not bot.bot:
-            embed = discord.Embed(description="✕ That's not a bot", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-        # Add to both trusted_bots (for is_trusted check) and known_bots (for anti-bot add)
-        self.trusted_bots[ctx.guild.id].add(bot.id)
-        self.known_bots[ctx.guild.id].add(bot.id)
-        # Save to database
-        if self.db:
-            try:
-                await self.db.add_trusted_bot(ctx.guild.id, bot.id)
-            except Exception as e:
-                logger.warning(f'Failed to save trusted bot to database: {e}')
-        embed = discord.Embed(description=f"+ Added {bot.mention} to trusted bots", color=0x2b2d31)
-        await ctx.send(embed=embed)
-
-    @commands.hybrid_command(name="untrustbot", description="Remove a bot from trusted bots")
-    @commands.guild_only()
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.has_permissions(administrator=True)
-    async def untrust_bot(self, ctx: commands.Context, bot: discord.Member):
-        """Remove a bot from the trusted bots list"""
-        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can untrust bots", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-        if not bot.bot:
-            embed = discord.Embed(description="✕ That's not a bot", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-        self.trusted_bots[ctx.guild.id].discard(bot.id)
-        # Remove from database
-        if self.db:
-            try:
-                await self.db.remove_trusted_bot(ctx.guild.id, bot.id)
-            except Exception as e:
-                logger.warning(f'Failed to remove trusted bot from database: {e}')
-        embed = discord.Embed(description=f"− Removed {bot.mention} from trusted bots", color=0x2b2d31)
-        await ctx.send(embed=embed)
-
-    @commands.hybrid_command(name="trustedbots", description="View all trusted bots")
-    @commands.guild_only()
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.has_permissions(administrator=True)
-    async def trusted_bots_list(self, ctx: commands.Context):
-        """View all trusted bots"""
-        bots = self.trusted_bots.get(ctx.guild.id, set())
-        if not bots:
-            embed = discord.Embed(description="› No trusted bots", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-
-        bot_list = []
-        for bid in bots:
-            member = ctx.guild.get_member(bid)
-            if member:
-                bot_list.append(f"› {member.mention}")
-            else:
-                bot_list.append(f"› `{bid}`")
-
-        embed = discord.Embed(color=0x2b2d31)
-        embed.description = f"**Trusted Bots**\n\n" + "\n".join(bot_list)
-        await ctx.send(embed=embed)
-
-    # ==================== TRUSTED ROLES (Lockdown Bypass) ====================
-
-    @commands.hybrid_command(name="trustrole", description="Add a role to trusted roles (can send messages during lockdown)")
-    @commands.guild_only()
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.has_permissions(administrator=True)
-    async def trust_role(self, ctx: commands.Context, role: discord.Role):
-        """Add a role to trusted roles - these roles can send messages during lockdown"""
-        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can manage trusted roles", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-
-        if role.is_default():
-            embed = discord.Embed(description="✕ Cannot trust @everyone role", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-
-        # Add to database
-        if self.db:
-            try:
-                await self.db.add_trusted_role(ctx.guild.id, role.id, ctx.author.id)
-                embed = discord.Embed(description=f"+ Added {role.mention} to trusted roles\n› Can send messages during lockdown", color=0x2b2d31)
-                await ctx.send(embed=embed)
-            except Exception as e:
-                logger.warning(f'Failed to add trusted role to database: {e}')
-                embed = discord.Embed(description="✕ Failed to save trusted role", color=0x2b2d31)
-                await ctx.send(embed=embed)
-        else:
-            embed = discord.Embed(description="✕ Database not available", color=0x2b2d31)
-            await ctx.send(embed=embed)
-
-    @commands.hybrid_command(name="untrustrole", description="Remove a role from trusted roles")
-    @commands.guild_only()
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.has_permissions(administrator=True)
-    async def untrust_role(self, ctx: commands.Context, role: discord.Role):
-        """Remove a role from trusted roles"""
-        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can manage trusted roles", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-
-        if self.db:
-            try:
-                await self.db.remove_trusted_role(ctx.guild.id, role.id)
-                embed = discord.Embed(description=f"− Removed {role.mention} from trusted roles", color=0x2b2d31)
-                await ctx.send(embed=embed)
-            except Exception as e:
-                logger.warning(f'Failed to remove trusted role from database: {e}')
-                embed = discord.Embed(description="✕ Failed to remove trusted role", color=0x2b2d31)
-                await ctx.send(embed=embed)
-        else:
-            embed = discord.Embed(description="✕ Database not available", color=0x2b2d31)
-            await ctx.send(embed=embed)
-
-    @commands.hybrid_command(name="trustedroles", description="View all trusted roles (lockdown bypass)")
-    @commands.guild_only()
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.has_permissions(administrator=True)
-    async def trusted_roles_list(self, ctx: commands.Context):
-        """View all trusted roles that can send messages during lockdown"""
-        if not self.db:
-            embed = discord.Embed(description="✕ Database not available", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-
-        try:
-            role_ids = await self.db.get_trusted_roles(ctx.guild.id)
-        except Exception as e:
-            logger.warning(f'Failed to get trusted roles from database: {e}')
-            embed = discord.Embed(description="✕ Failed to load trusted roles", color=0x2b2d31)
-            return await ctx.send(embed=embed)
-
-        if not role_ids:
-            embed = discord.Embed(
-                description="**Trusted Roles** (Lockdown Bypass)\n\n› No trusted roles\n\nUse `!trustrole @Role` to add roles that can send messages during lockdown",
-                color=0x2b2d31
-            )
-            return await ctx.send(embed=embed)
-
-        role_list = []
-        for rid in role_ids:
-            role = ctx.guild.get_role(rid)
-            if role:
-                role_list.append(f"› {role.mention}")
-            else:
-                role_list.append(f"› `{rid}` (deleted)")
-
-        embed = discord.Embed(color=0x2b2d31)
-        embed.description = f"**Trusted Roles** (Lockdown Bypass)\n\n" + "\n".join(role_list) + "\n\n*These roles can send messages during lockdown*"
-        await ctx.send(embed=embed)
+    def is_whitelisted_unified(self, guild_id: int, user_id: int) -> bool:
+        """Check if user is whitelisted using the unified whitelist system"""
+        wl_cog = self._get_whitelist_cog()
+        if wl_cog:
+            return wl_cog.is_whitelisted(guild_id, user_id)
+        # Fallback to local cache
+        return user_id in self.whitelisted.get(guild_id, set())
 
     @commands.hybrid_command(name="lockdownstatus", description="View current lockdown status")
     @commands.guild_only()
@@ -2563,20 +2363,19 @@ class AntiNuke(commands.Cog):
         """View current lockdown status and bypass configuration"""
         is_locked = self.lockdown_active.get(ctx.guild.id, False)
 
-        # Get trusted users count
-        trusted_users = self.whitelisted.get(ctx.guild.id, set())
+        # Get whitelist counts from unified whitelist cog
+        whitelist_cog = self.bot.get_cog('Whitelist')
+        user_count = 0
+        bot_count = 0
+        role_mentions = []
 
-        # Get trusted roles
-        trusted_roles = []
-        if self.db:
-            try:
-                role_ids = await self.db.get_trusted_roles(ctx.guild.id)
-                for rid in role_ids:
-                    role = ctx.guild.get_role(rid)
-                    if role:
-                        trusted_roles.append(role.mention)
-            except:
-                pass
+        if whitelist_cog:
+            user_count = len(whitelist_cog.get_whitelisted_users(ctx.guild.id))
+            bot_count = len(whitelist_cog.get_whitelisted_bots(ctx.guild.id))
+            for rid in whitelist_cog.get_whitelisted_roles(ctx.guild.id):
+                role = ctx.guild.get_role(rid)
+                if role:
+                    role_mentions.append(role.mention)
 
         status = "🔒 **LOCKED**" if is_locked else "🔓 Unlocked"
 
@@ -2585,45 +2384,54 @@ class AntiNuke(commands.Cog):
             f"**Lockdown Status**\n\n"
             f"› Status: {status}\n"
             f"› Backed up channels: `{len(self.lockdown_permission_backup.get(ctx.guild.id, {}))}`\n\n"
-            f"**Bypass Configuration**\n"
-            f"› Trusted users: `{len(trusted_users)}`\n"
-            f"› Trusted roles: {', '.join(trusted_roles) if trusted_roles else '`None`'}\n"
+            f"**Whitelist (Bypass Anti-Nuke + Lockdown)**\n"
+            f"› Whitelisted users: `{user_count}`\n"
+            f"› Whitelisted bots: `{bot_count}`\n"
+            f"› Whitelisted roles: {', '.join(role_mentions) if role_mentions else '`None`'}\n"
             f"› Admins/Mods: `Always bypass`\n\n"
-            f"*Use `!trustrole @Role` to add bypass roles*"
+            f"*Use `!wlist` to manage whitelist*"
         )
         await ctx.send(embed=embed)
 
     async def _apply_lockdown_bypass(self, channel: discord.TextChannel, guild: discord.Guild):
-        """Apply lockdown bypass permissions for trusted users and roles"""
+        """Apply lockdown bypass permissions for whitelisted users, bots, and roles"""
         bypass_count = 0
 
-        # Get trusted users
-        trusted_users = self.whitelisted.get(guild.id, set())
-        for user_id in trusted_users:
-            member = guild.get_member(user_id)
-            if member:
-                try:
-                    await channel.set_permissions(member, send_messages=True, reason="[LOCKDOWN] Trusted user bypass")
-                    bypass_count += 1
-                except:
-                    pass
+        # Get unified whitelist cog
+        whitelist_cog = self.bot.get_cog('Whitelist')
 
-        # Get trusted roles (from database)
-        if self.db:
-            try:
-                trusted_role_ids = await self.db.get_trusted_roles(guild.id)
-                for role_id in trusted_role_ids:
-                    role = guild.get_role(role_id)
-                    if role:
-                        try:
-                            await channel.set_permissions(role, send_messages=True, reason="[LOCKDOWN] Trusted role bypass")
-                            bypass_count += 1
-                        except:
-                            pass
-            except:
-                pass
+        if whitelist_cog:
+            # Get whitelisted users
+            for user_id in whitelist_cog.get_whitelisted_users(guild.id):
+                member = guild.get_member(user_id)
+                if member:
+                    try:
+                        await channel.set_permissions(member, send_messages=True, reason="[LOCKDOWN] Whitelisted user bypass")
+                        bypass_count += 1
+                    except:
+                        pass
 
-        # Always bypass for admins and mods with manage_messages
+            # Get whitelisted bots
+            for bot_id in whitelist_cog.get_whitelisted_bots(guild.id):
+                member = guild.get_member(bot_id)
+                if member:
+                    try:
+                        await channel.set_permissions(member, send_messages=True, reason="[LOCKDOWN] Whitelisted bot bypass")
+                        bypass_count += 1
+                    except:
+                        pass
+
+            # Get whitelisted roles
+            for role_id in whitelist_cog.get_whitelisted_roles(guild.id):
+                role = guild.get_role(role_id)
+                if role:
+                    try:
+                        await channel.set_permissions(role, send_messages=True, reason="[LOCKDOWN] Whitelisted role bypass")
+                        bypass_count += 1
+                    except:
+                        pass
+
+        # Always bypass for admins and mods with manage_guild
         for role in guild.roles:
             if role.permissions.administrator or role.permissions.manage_guild:
                 try:
@@ -2636,34 +2444,41 @@ class AntiNuke(commands.Cog):
 
     async def _remove_lockdown_bypass(self, channel: discord.TextChannel, guild: discord.Guild):
         """Remove lockdown bypass permissions"""
-        # Get trusted users
-        trusted_users = self.whitelisted.get(guild.id, set())
-        for user_id in trusted_users:
-            member = guild.get_member(user_id)
-            if member:
-                try:
-                    # Remove only the send_messages override we added
-                    current = channel.overwrites.get(member)
-                    if current and current.send_messages == True:
-                        await channel.set_permissions(member, overwrite=None, reason="[LOCKDOWN END] Removing bypass")
-                except:
-                    pass
+        whitelist_cog = self.bot.get_cog('Whitelist')
 
-        # Get trusted roles
-        if self.db:
-            try:
-                trusted_role_ids = await self.db.get_trusted_roles(guild.id)
-                for role_id in trusted_role_ids:
-                    role = guild.get_role(role_id)
-                    if role and not role.permissions.administrator:
-                        try:
-                            current = channel.overwrites.get(role)
-                            if current and current.send_messages == True:
-                                await channel.set_permissions(role, overwrite=None, reason="[LOCKDOWN END] Removing bypass")
-                        except:
-                            pass
-            except:
-                pass
+        if whitelist_cog:
+            # Remove whitelisted user overrides
+            for user_id in whitelist_cog.get_whitelisted_users(guild.id):
+                member = guild.get_member(user_id)
+                if member:
+                    try:
+                        current = channel.overwrites.get(member)
+                        if current and current.send_messages == True:
+                            await channel.set_permissions(member, overwrite=None, reason="[LOCKDOWN END] Removing bypass")
+                    except:
+                        pass
+
+            # Remove whitelisted bot overrides
+            for bot_id in whitelist_cog.get_whitelisted_bots(guild.id):
+                member = guild.get_member(bot_id)
+                if member:
+                    try:
+                        current = channel.overwrites.get(member)
+                        if current and current.send_messages == True:
+                            await channel.set_permissions(member, overwrite=None, reason="[LOCKDOWN END] Removing bypass")
+                    except:
+                        pass
+
+            # Remove whitelisted role overrides (except admin roles)
+            for role_id in whitelist_cog.get_whitelisted_roles(guild.id):
+                role = guild.get_role(role_id)
+                if role and not role.permissions.administrator:
+                    try:
+                        current = channel.overwrites.get(role)
+                        if current and current.send_messages == True:
+                            await channel.set_permissions(role, overwrite=None, reason="[LOCKDOWN END] Removing bypass")
+                    except:
+                        pass
 
     @commands.hybrid_command(name="serverlock", description="Manually lock down the server")
     @commands.guild_only()

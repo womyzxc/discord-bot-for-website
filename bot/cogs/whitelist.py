@@ -1,7 +1,12 @@
 """
-Whitelist Management Cog - Minimal Style
-All commands work with both ! and /
-Supports both user and role whitelisting
+Unified Whitelist Management Cog
+================================
+Single whitelist system for all anti-nuke bypass:
+- Users, Roles, and Bots
+- Bypass ALL anti-nuke features
+- Cannot be punished
+- Can send messages during lockdown
+- Database persistent
 """
 
 import discord
@@ -9,7 +14,8 @@ from discord.ext import commands
 from datetime import datetime
 from collections import defaultdict
 import logging
-from typing import Dict, Optional, Set
+from typing import Dict, Optional, Set, List
+import os
 
 logger = logging.getLogger('Offcialx.Whitelist')
 
@@ -17,50 +23,30 @@ logger = logging.getLogger('Offcialx.Whitelist')
 EMBED_COLOR = 0x2b2d31
 
 
-class WhitelistEntry:
-    """Represents a whitelist entry"""
-
-    def __init__(self, user_id: int, level: str, added_by: int, reason: str = ""):
-        self.user_id = user_id
-        self.level = level
-        self.added_by = added_by
-        self.added_at = datetime.utcnow()
-        self.reason = reason
-
-
-class RoleWhitelistEntry:
-    """Represents a role whitelist entry"""
-
-    def __init__(self, role_id: int, added_by: int, reason: str = ""):
-        self.role_id = role_id
-        self.added_by = added_by
-        self.added_at = datetime.utcnow()
-        self.reason = reason
-
-
 class Whitelist(commands.Cog):
-    """Whitelist Management System"""
+    """Unified Whitelist Management System"""
 
     def __init__(self, bot):
         self.bot = bot
         self.db = None  # Will be injected by bot
-        self.whitelists: Dict[int, Dict[int, WhitelistEntry]] = defaultdict(dict)
-        self.whitelisted_roles: Dict[int, Dict[int, RoleWhitelistEntry]] = defaultdict(dict)  # guild_id -> {role_id -> entry}
-        self.guild_settings: Dict[int, Dict] = {}
-        self.levels = {'trusted': 1, 'admin': 2, 'owner': 3}
-        self._settings_loaded: set = set()
+
+        # Whitelisted entities (all bypass anti-nuke + lockdown)
+        self.whitelisted_users: Dict[int, Set[int]] = defaultdict(set)  # guild_id -> set of user_ids
+        self.whitelisted_roles: Dict[int, Set[int]] = defaultdict(set)  # guild_id -> set of role_ids
+        self.whitelisted_bots: Dict[int, Set[int]] = defaultdict(set)   # guild_id -> set of bot_ids
+
+        self._loaded_guilds: Set[int] = set()
 
         # Owner IDs from environment
-        self.owner_ids: set = set()
-        import os
+        self.owner_ids: Set[int] = set()
         for oid in os.getenv('OWNER_IDS', '').split(','):
             try:
                 self.owner_ids.add(int(oid.strip()))
             except:
                 pass
 
-    def is_privileged(self, guild, user_id: int) -> bool:
-        """Check if user is server owner, bot owner, or developer"""
+    def is_owner(self, guild: discord.Guild, user_id: int) -> bool:
+        """Check if user is server owner or bot owner"""
         if user_id == guild.owner_id:
             return True
         if user_id in self.owner_ids:
@@ -71,576 +57,524 @@ class Whitelist(commands.Cog):
 
     async def owner_check(self, ctx) -> bool:
         """Check ownership and send error if not owner"""
-        if not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can use this command", color=EMBED_COLOR)
+        if not self.is_owner(ctx.guild, ctx.author.id):
+            embed = discord.Embed(description="✕ Only server owner can manage whitelist", color=EMBED_COLOR)
             await ctx.send(embed=embed)
             return False
         return True
 
-    async def preload_all_settings(self):
-        """Preload settings for all guilds on bot startup"""
-        if not self.db:
+    async def load_guild_whitelist(self, guild_id: int):
+        """Load whitelist from database for a guild"""
+        if guild_id in self._loaded_guilds or not self.db:
             return
 
-        logger.info("Preloading whitelist settings for all guilds...")
-        loaded_count = 0
-        users_count = 0
-        roles_count = 0
+        try:
+            # Load trusted users
+            users = await self.db.get_trusted_users(guild_id)
+            self.whitelisted_users[guild_id] = set(users)
+
+            # Load trusted bots
+            bots = await self.db.get_trusted_bots(guild_id)
+            self.whitelisted_bots[guild_id] = set(bots)
+
+            # Load trusted roles
+            roles = await self.db.get_trusted_roles(guild_id)
+            self.whitelisted_roles[guild_id] = set(roles)
+
+            self._loaded_guilds.add(guild_id)
+            logger.info(f"Loaded whitelist for guild {guild_id}: {len(users)} users, {len(bots)} bots, {len(roles)} roles")
+        except Exception as e:
+            logger.warning(f"Failed to load whitelist for guild {guild_id}: {e}")
+
+    async def preload_all_guilds(self):
+        """Preload whitelist for all guilds on startup"""
+        if not self.db:
+            return
 
         for guild in self.bot.guilds:
-            try:
-                # Always set defaults first
-                self.guild_settings[guild.id] = {
-                    'enabled': True,
-                    'max_trusted': 10,
-                    'max_admins': 5,
-                    'max_roles': 10,
-                    'auto_whitelist_owner': True,
-                    'require_2fa': False,
-                    'log_channel': None,
-                }
+            await self.load_guild_whitelist(guild.id)
 
-                # Load and override with database settings
-                db_settings = await self.db.get_guild_settings(guild.id, 'whitelist')
-                if db_settings and isinstance(db_settings, dict):
-                    self.guild_settings[guild.id].update(db_settings)
-                    loaded_count += 1
+    # ==================== CHECK METHODS (Used by Anti-Nuke) ====================
 
-                # Load whitelist entries
-                entries = await self.db.get_whitelist(guild.id)
-                for entry in entries:
-                    if isinstance(entry, dict) and 'user_id' in entry:
-                        self.whitelists[guild.id][entry['user_id']] = WhitelistEntry(
-                            user_id=entry['user_id'],
-                            level=entry.get('level', 'trusted'),
-                            added_by=entry.get('added_by', 0),
-                            reason=entry.get('reason', '')
-                        )
-                        users_count += 1
+    def is_whitelisted(self, guild_id: int, user_id: int) -> bool:
+        """Check if a user is whitelisted (bypasses anti-nuke)"""
+        # Check if user is directly whitelisted
+        if user_id in self.whitelisted_users.get(guild_id, set()):
+            return True
 
-                # Load whitelisted roles
-                roles = await self.db.get_whitelisted_roles(guild.id)
-                for entry in roles:
-                    if isinstance(entry, dict) and 'role_id' in entry:
-                        role_id = entry['role_id']
-                        self.whitelisted_roles[guild.id][role_id] = RoleWhitelistEntry(
-                            role_id=role_id,
-                            added_by=entry.get('added_by', 0),
-                            reason=entry.get('reason', '')
-                        )
-                        roles_count += 1
-                    elif isinstance(entry, int):
-                        # Handle case where only role_id is returned
-                        self.whitelisted_roles[guild.id][entry] = RoleWhitelistEntry(
-                            role_id=entry,
-                            added_by=0,
-                            reason=''
-                        )
-                        roles_count += 1
+        # Check if user is a whitelisted bot
+        if user_id in self.whitelisted_bots.get(guild_id, set()):
+            return True
 
-                self._settings_loaded.add(guild.id)
-            except Exception as e:
-                logger.error(f'Failed to preload whitelist settings for guild {guild.id}: {e}')
-                import traceback
-                traceback.print_exc()
+        # Check if user has a whitelisted role
+        guild = self.bot.get_guild(guild_id)
+        if guild:
+            member = guild.get_member(user_id)
+            if member:
+                member_role_ids = {r.id for r in member.roles}
+                if member_role_ids & self.whitelisted_roles.get(guild_id, set()):
+                    return True
 
-        logger.info(f"✅ Preloaded whitelist: {loaded_count} guilds, {users_count} users, {roles_count} roles")
+        return False
 
-    async def get_settings(self, guild_id: int) -> Dict:
-        """Get guild settings - loads from database if available"""
-        if guild_id not in self.guild_settings:
-            # Default settings
-            self.guild_settings[guild_id] = {
-                'enabled': True,
-                'max_trusted': 10,
-                'max_admins': 5,
-                'max_roles': 10,  # Max whitelisted roles
-                'auto_whitelist_owner': True,
-                'require_2fa': False,
-                'log_channel': None,
-            }
+    def is_whitelisted_bot(self, guild_id: int, bot_id: int) -> bool:
+        """Check if a bot is whitelisted"""
+        return bot_id in self.whitelisted_bots.get(guild_id, set())
 
-            # Try to load from database
-            if self.db and guild_id not in self._settings_loaded:
-                try:
-                    db_settings = await self.db.get_guild_settings(guild_id, 'whitelist')
-                    if db_settings:
-                        self.guild_settings[guild_id].update(db_settings)
-
-                    # Load whitelist entries from database
-                    entries = await self.db.get_whitelist(guild_id)
-                    for entry in entries:
-                        self.whitelists[guild_id][entry['user_id']] = WhitelistEntry(
-                            user_id=entry['user_id'],
-                            level=entry['level'],
-                            added_by=entry['added_by'],
-                            reason=entry.get('reason', '')
-                        )
-
-                    # Load whitelisted roles from database
-                    roles = await self.db.get_whitelisted_roles(guild_id)
-                    for entry in roles:
-                        role_id = entry.get('role_id') if isinstance(entry, dict) else entry
-                        self.whitelisted_roles[guild_id][role_id] = RoleWhitelistEntry(
-                            role_id=role_id,
-                            added_by=entry.get('added_by', 0) if isinstance(entry, dict) else 0,
-                            reason=entry.get('reason', '') if isinstance(entry, dict) else ''
-                        )
-
-                    self._settings_loaded.add(guild_id)
-                except Exception as e:
-                    logger.warning(f'Failed to load whitelist settings from database: {e}')
-
-        return self.guild_settings[guild_id]
-
-    async def save_settings(self, guild_id: int):
-        """Save guild settings to database"""
-        if not self.db:
-            return
-
-        try:
-            settings = self.guild_settings.get(guild_id, {})
-            await self.db.save_guild_settings(guild_id, 'whitelist', settings)
-        except Exception as e:
-            logger.warning(f'Failed to save whitelist settings to database: {e}')
-
-    def is_whitelisted(self, guild_id: int, user_id: int, min_level: str = 'trusted') -> bool:
-        """Check if a user is whitelisted at minimum level"""
-        if guild_id not in self.whitelists:
-            return False
-        entry = self.whitelists[guild_id].get(user_id)
-        if not entry:
-            return False
-        return self.levels.get(entry.level, 0) >= self.levels.get(min_level, 0)
-
-    def is_role_whitelisted(self, guild_id: int, role_id: int) -> bool:
+    def is_whitelisted_role(self, guild_id: int, role_id: int) -> bool:
         """Check if a role is whitelisted"""
-        return role_id in self.whitelisted_roles.get(guild_id, {})
+        return role_id in self.whitelisted_roles.get(guild_id, set())
 
-    def has_whitelisted_role(self, guild_id: int, member: discord.Member) -> bool:
-        """Check if a member has any whitelisted role"""
-        if guild_id not in self.whitelisted_roles:
-            return False
-        whitelisted = self.whitelisted_roles[guild_id]
-        for role in member.roles:
-            if role.id in whitelisted:
-                return True
-        return False
+    def get_whitelisted_users(self, guild_id: int) -> Set[int]:
+        """Get all whitelisted user IDs"""
+        return self.whitelisted_users.get(guild_id, set())
 
-    def get_whitelist_level(self, guild_id: int, user_id: int) -> Optional[str]:
-        """Get the whitelist level for a user"""
-        if guild_id not in self.whitelists:
-            return None
-        entry = self.whitelists[guild_id].get(user_id)
-        return entry.level if entry else None
+    def get_whitelisted_bots(self, guild_id: int) -> Set[int]:
+        """Get all whitelisted bot IDs"""
+        return self.whitelisted_bots.get(guild_id, set())
 
-    def get_whitelisted_roles(self, guild_id: int) -> Dict[int, RoleWhitelistEntry]:
-        """Get all whitelisted roles for a guild"""
-        return self.whitelisted_roles.get(guild_id, {})
-
-    def add_role_to_whitelist(self, guild_id: int, role_id: int, added_by: int, reason: str = "") -> bool:
-        """Add a role to the whitelist"""
-        self.whitelisted_roles[guild_id][role_id] = RoleWhitelistEntry(role_id, added_by, reason)
-        logger.info(f'Added role {role_id} to whitelist in guild {guild_id}')
-        return True
-
-    def remove_role_from_whitelist(self, guild_id: int, role_id: int) -> bool:
-        """Remove a role from the whitelist"""
-        if role_id in self.whitelisted_roles.get(guild_id, {}):
-            del self.whitelisted_roles[guild_id][role_id]
-            logger.info(f'Removed role {role_id} from whitelist in guild {guild_id}')
-            return True
-        return False
-
-    async def add_to_whitelist_async(self, guild_id: int, user_id: int, level: str, added_by: int, reason: str = "") -> bool:
-        """Add a user to the whitelist (async with database)"""
-        if level not in self.levels:
-            return False
-        self.whitelists[guild_id][user_id] = WhitelistEntry(user_id, level, added_by, reason)
-
-        # Save to database
-        if self.db:
-            try:
-                await self.db.add_to_whitelist(guild_id, user_id, level, added_by, reason)
-            except Exception as e:
-                logger.warning(f'Failed to save whitelist to database: {e}')
-
-        logger.info(f'Added {user_id} to whitelist in guild {guild_id} at level {level}')
-        return True
-
-    def add_to_whitelist(self, guild_id: int, user_id: int, level: str, added_by: int, reason: str = "") -> bool:
-        """Add a user to the whitelist (sync version for compatibility)"""
-        if level not in self.levels:
-            return False
-        self.whitelists[guild_id][user_id] = WhitelistEntry(user_id, level, added_by, reason)
-        logger.info(f'Added {user_id} to whitelist in guild {guild_id} at level {level}')
-        return True
-
-    async def remove_from_whitelist_async(self, guild_id: int, user_id: int) -> bool:
-        """Remove a user from the whitelist (async with database)"""
-        if user_id in self.whitelists.get(guild_id, {}):
-            del self.whitelists[guild_id][user_id]
-
-            # Remove from database
-            if self.db:
-                try:
-                    await self.db.remove_from_whitelist(guild_id, user_id)
-                except Exception as e:
-                    logger.warning(f'Failed to remove from whitelist in database: {e}')
-
-            logger.info(f'Removed {user_id} from whitelist in guild {guild_id}')
-            return True
-        return False
-
-    def remove_from_whitelist(self, guild_id: int, user_id: int) -> bool:
-        """Remove a user from the whitelist (sync version for compatibility)"""
-        if user_id in self.whitelists.get(guild_id, {}):
-            del self.whitelists[guild_id][user_id]
-            logger.info(f'Removed {user_id} from whitelist in guild {guild_id}')
-            return True
-        return False
-
-    def get_all_whitelisted(self, guild_id: int) -> Dict[int, WhitelistEntry]:
-        """Get all whitelisted users for a guild"""
-        return self.whitelists.get(guild_id, {})
-
-    async def log_whitelist_action(self, guild: discord.Guild, action: str, target,
-                                    by: discord.User, level: str = None, reason: str = None):
-        """Log a whitelist action"""
-        settings = await self.get_settings(guild.id)
-        if not settings['log_channel']:
-            return
-
-        channel = guild.get_channel(settings['log_channel'])
-        if not channel:
-            return
-
-        embed = discord.Embed(color=EMBED_COLOR)
-
-        # Handle both users and roles
-        if isinstance(target, discord.Role):
-            text = f"**Whitelist Role {action.title()}**\n\n› Role: {target.mention}\n› By: {by.mention}"
-        else:
-            text = f"**Whitelist {action.title()}**\n\n› User: {target.mention}\n› By: {by.mention}"
-
-        if level:
-            text += f"\n› Level: `{level}`"
-        if reason:
-            text += f"\n› Reason: `{reason}`"
-        embed.description = text
-
-        try:
-            await channel.send(embed=embed)
-        except:
-            pass
+    def get_whitelisted_roles(self, guild_id: int) -> Set[int]:
+        """Get all whitelisted role IDs"""
+        return self.whitelisted_roles.get(guild_id, set())
 
     # ==================== COMMANDS ====================
 
-    @commands.hybrid_group(name='wlist', aliases=['wl'], invoke_without_command=True)
+    @commands.hybrid_group(name='wlist', aliases=['wl', 'whitelist'], invoke_without_command=True)
+    @commands.guild_only()
     @commands.has_permissions(administrator=True)
     async def wlist(self, ctx: commands.Context):
-        """Whitelist management commands"""
+        """View all whitelisted users, roles, and bots"""
         if not await self.owner_check(ctx):
             return
 
-        entries = self.get_all_whitelisted(ctx.guild.id)
-        role_entries = self.get_whitelisted_roles(ctx.guild.id)
+        await self.load_guild_whitelist(ctx.guild.id)
 
-        if not entries and not role_entries:
-            embed = discord.Embed(description="No whitelisted users or roles\nUse `wlist add @user` or `wlist role @role`", color=EMBED_COLOR)
+        users = self.whitelisted_users.get(ctx.guild.id, set())
+        roles = self.whitelisted_roles.get(ctx.guild.id, set())
+        bots = self.whitelisted_bots.get(ctx.guild.id, set())
+
+        total = len(users) + len(roles) + len(bots)
+
+        if total == 0:
+            embed = discord.Embed(
+                description=(
+                    "**Whitelist** `empty`\n\n"
+                    "Use these commands to add:\n"
+                    "› `wlist user @user` − Add user\n"
+                    "› `wlist role @role` − Add role\n"
+                    "› `wlist bot @bot` − Add bot\n\n"
+                    "*Whitelisted entries bypass anti-nuke and lockdown*"
+                ),
+                color=EMBED_COLOR
+            )
             return await ctx.send(embed=embed)
 
-        owners = []
-        admins = []
-        trusted = []
-        roles = []
+        text = f"**Whitelist** `{total} entries`\n\n"
 
-        for user_id, entry in entries.items():
-            member = ctx.guild.get_member(user_id)
-            display = f"› {member.mention}" if member else f"› `{user_id}`"
+        # Users
+        if users:
+            user_list = []
+            for uid in users:
+                member = ctx.guild.get_member(uid)
+                user_list.append(f"› {member.mention}" if member else f"› `{uid}`")
+            text += f"**Users** `{len(users)}`\n" + "\n".join(user_list[:10])
+            if len(users) > 10:
+                text += f"\n› +{len(users) - 10} more"
+            text += "\n\n"
 
-            if entry.level == 'owner':
-                owners.append(display)
-            elif entry.level == 'admin':
-                admins.append(display)
-            else:
-                trusted.append(display)
-
-        for role_id, entry in role_entries.items():
-            role = ctx.guild.get_role(role_id)
-            display = f"› {role.mention}" if role else f"› `{role_id}`"
-            roles.append(display)
-
-        text = f"**Whitelist** `{len(entries)} users, {len(role_entries)} roles`\n\n"
-        if owners:
-            text += f"**Owners**\n" + "\n".join(owners) + "\n\n"
-        if admins:
-            text += f"**Admins**\n" + "\n".join(admins) + "\n\n"
-        if trusted:
-            text += f"**Trusted**\n" + "\n".join(trusted) + "\n\n"
+        # Roles
         if roles:
-            text += f"**Whitelisted Roles**\n" + "\n".join(roles)
+            role_list = []
+            for rid in roles:
+                role = ctx.guild.get_role(rid)
+                role_list.append(f"› {role.mention}" if role else f"› `{rid}`")
+            text += f"**Roles** `{len(roles)}`\n" + "\n".join(role_list[:10])
+            if len(roles) > 10:
+                text += f"\n› +{len(roles) - 10} more"
+            text += "\n\n"
+
+        # Bots
+        if bots:
+            bot_list = []
+            for bid in bots:
+                member = ctx.guild.get_member(bid)
+                bot_list.append(f"› {member.mention}" if member else f"› `{bid}`")
+            text += f"**Bots** `{len(bots)}`\n" + "\n".join(bot_list[:10])
+            if len(bots) > 10:
+                text += f"\n› +{len(bots) - 10} more"
+
+        text += "\n\n*All bypass anti-nuke + lockdown*"
 
         embed = discord.Embed(description=text.strip(), color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
-    @wlist.command(name='add')
+    # ==================== ADD COMMANDS ====================
+
+    @wlist.command(name='user')
+    @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def whitelist_add(self, ctx: commands.Context, member: discord.Member, level: str = 'trusted', *, reason: str = ""):
-        """Add a user to the whitelist"""
+    async def wlist_user(self, ctx: commands.Context, user: discord.Member):
+        """Add a user to the whitelist (bypasses anti-nuke + lockdown)"""
         if not await self.owner_check(ctx):
             return
 
-        valid_levels = ['owner', 'admin', 'trusted']
-        if level.lower() not in valid_levels:
-            embed = discord.Embed(description=f"✕ Invalid level. Use: `{', '.join(valid_levels)}`", color=EMBED_COLOR)
+        await self.load_guild_whitelist(ctx.guild.id)
+
+        if user.id in self.whitelisted_users[ctx.guild.id]:
+            embed = discord.Embed(description=f"› {user.mention} is already whitelisted", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        settings = await self.get_settings(ctx.guild.id)
-        entries = self.get_all_whitelisted(ctx.guild.id)
+        self.whitelisted_users[ctx.guild.id].add(user.id)
 
-        level_counts = {'owner': 0, 'admin': 0, 'trusted': 0}
-        for entry in entries.values():
-            level_counts[entry.level] = level_counts.get(entry.level, 0) + 1
+        # Save to database
+        if self.db:
+            try:
+                await self.db.add_trusted_user(ctx.guild.id, user.id)
+            except Exception as e:
+                logger.warning(f'Failed to save whitelisted user: {e}')
 
-        if level.lower() == 'admin' and level_counts['admin'] >= settings['max_admins']:
-            embed = discord.Embed(description=f"✕ Max admin slots reached `{settings['max_admins']}`", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-        if level.lower() == 'trusted' and level_counts['trusted'] >= settings['max_trusted']:
-            embed = discord.Embed(description=f"✕ Max trusted slots reached `{settings['max_trusted']}`", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-
-        if level.lower() == 'owner' and not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can add owner level", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-
-        await self.add_to_whitelist_async(ctx.guild.id, member.id, level.lower(), ctx.author.id, reason)
-        await self.log_whitelist_action(ctx.guild, 'add', member, ctx.author, level.lower(), reason)
-
-        embed = discord.Embed(description=f"+ Added {member.mention} to whitelist as `{level.lower()}`", color=EMBED_COLOR)
+        embed = discord.Embed(
+            description=f"+ Added {user.mention} to whitelist\n› Bypasses anti-nuke + lockdown",
+            color=EMBED_COLOR
+        )
         await ctx.send(embed=embed)
 
-    @wlist.command(name='remove', aliases=['rm', 'del'])
+    @wlist.command(name='role')
+    @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def whitelist_remove(self, ctx: commands.Context, member: discord.Member):
+    async def wlist_role(self, ctx: commands.Context, role: discord.Role):
+        """Add a role to the whitelist (all members bypass anti-nuke + lockdown)"""
+        if not await self.owner_check(ctx):
+            return
+
+        if role.is_default():
+            embed = discord.Embed(description="✕ Cannot whitelist @everyone", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        await self.load_guild_whitelist(ctx.guild.id)
+
+        if role.id in self.whitelisted_roles[ctx.guild.id]:
+            embed = discord.Embed(description=f"› {role.mention} is already whitelisted", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        self.whitelisted_roles[ctx.guild.id].add(role.id)
+
+        # Save to database
+        if self.db:
+            try:
+                await self.db.add_trusted_role(ctx.guild.id, role.id, ctx.author.id)
+            except Exception as e:
+                logger.warning(f'Failed to save whitelisted role: {e}')
+
+        embed = discord.Embed(
+            description=f"+ Added {role.mention} to whitelist\n› All members bypass anti-nuke + lockdown",
+            color=EMBED_COLOR
+        )
+        await ctx.send(embed=embed)
+
+    @wlist.command(name='bot')
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def wlist_bot(self, ctx: commands.Context, bot: discord.Member):
+        """Add a bot to the whitelist (bypasses anti-nuke + lockdown)"""
+        if not await self.owner_check(ctx):
+            return
+
+        if not bot.bot:
+            embed = discord.Embed(description="✕ That's not a bot. Use `wlist user` for users", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        await self.load_guild_whitelist(ctx.guild.id)
+
+        if bot.id in self.whitelisted_bots[ctx.guild.id]:
+            embed = discord.Embed(description=f"› {bot.mention} is already whitelisted", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        self.whitelisted_bots[ctx.guild.id].add(bot.id)
+
+        # Save to database
+        if self.db:
+            try:
+                await self.db.add_trusted_bot(ctx.guild.id, bot.id)
+            except Exception as e:
+                logger.warning(f'Failed to save whitelisted bot: {e}')
+
+        embed = discord.Embed(
+            description=f"+ Added {bot.mention} to whitelist\n› Bypasses anti-nuke + lockdown",
+            color=EMBED_COLOR
+        )
+        await ctx.send(embed=embed)
+
+    # ==================== REMOVE COMMANDS ====================
+
+    @wlist.group(name='remove', aliases=['rm', 'del'], invoke_without_command=True)
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def wlist_remove(self, ctx: commands.Context):
+        """Remove users, roles, or bots from whitelist"""
+        embed = discord.Embed(
+            description=(
+                "**Remove from Whitelist**\n\n"
+                "› `wlist remove user @user`\n"
+                "› `wlist remove role @role`\n"
+                "› `wlist remove bot @bot`"
+            ),
+            color=EMBED_COLOR
+        )
+        await ctx.send(embed=embed)
+
+    @wlist_remove.command(name='user')
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def wlist_remove_user(self, ctx: commands.Context, user: discord.Member):
         """Remove a user from the whitelist"""
         if not await self.owner_check(ctx):
             return
 
-        entry = self.whitelists.get(ctx.guild.id, {}).get(member.id)
+        await self.load_guild_whitelist(ctx.guild.id)
 
-        if not entry:
-            embed = discord.Embed(description=f"✕ {member.mention} not whitelisted", color=EMBED_COLOR)
+        if user.id not in self.whitelisted_users[ctx.guild.id]:
+            embed = discord.Embed(description=f"› {user.mention} is not whitelisted", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        if entry.level == 'owner' and not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can remove owner level", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
+        self.whitelisted_users[ctx.guild.id].discard(user.id)
 
-        await self.remove_from_whitelist_async(ctx.guild.id, member.id)
-        await self.log_whitelist_action(ctx.guild, 'remove', member, ctx.author)
-
-        embed = discord.Embed(description=f"− Removed {member.mention} from whitelist", color=EMBED_COLOR)
-        await ctx.send(embed=embed)
-
-    @wlist.command(name='check')
-    @commands.has_permissions(administrator=True)
-    async def whitelist_check(self, ctx: commands.Context, member: discord.Member):
-        """Check a user's whitelist status"""
-        if not await self.owner_check(ctx):
-            return
-
-        entry = self.whitelists.get(ctx.guild.id, {}).get(member.id)
-
-        if not entry:
-            embed = discord.Embed(description=f"{member.mention} not whitelisted", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-
-        added_by = ctx.guild.get_member(entry.added_by)
-        embed = discord.Embed(color=EMBED_COLOR)
-        embed.description = (
-            f"**{member.display_name}**\n\n"
-            f"› Level: `{entry.level}`\n"
-            f"› Added by: {added_by.mention if added_by else '`Unknown`'}\n"
-            f"› Added: `{entry.added_at.strftime('%Y-%m-%d')}`"
-        )
-        if entry.reason:
-            embed.description += f"\n› Reason: `{entry.reason}`"
-        await ctx.send(embed=embed)
-
-    @wlist.command(name='update')
-    @commands.has_permissions(administrator=True)
-    async def whitelist_update(self, ctx: commands.Context, member: discord.Member, level: str):
-        """Update a user's whitelist level"""
-        if not await self.owner_check(ctx):
-            return
-
-        valid_levels = ['owner', 'admin', 'trusted']
-        if level.lower() not in valid_levels:
-            embed = discord.Embed(description=f"✕ Invalid level. Use: `{', '.join(valid_levels)}`", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-
-        entry = self.whitelists.get(ctx.guild.id, {}).get(member.id)
-
-        if not entry:
-            embed = discord.Embed(description=f"✕ {member.mention} not whitelisted", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-
-        if entry.level == 'owner' and not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can modify owner level", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-        if level.lower() == 'owner' and not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can set owner level", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-
-        old_level = entry.level
-        entry.level = level.lower()
-
-        await self.log_whitelist_action(ctx.guild, 'update', member, ctx.author, level.lower(),
-                                        f"Changed from {old_level} to {level.lower()}")
-
-        embed = discord.Embed(description=f"+ Updated {member.mention} from `{old_level}` to `{level.lower()}`", color=EMBED_COLOR)
-        await ctx.send(embed=embed)
-
-    @wlist.command(name='clear')
-    @commands.has_permissions(administrator=True)
-    async def whitelist_clear(self, ctx: commands.Context, level: str = None):
-        """Clear the whitelist (optionally by level)"""
-        if not await self.owner_check(ctx):
-            return
-
-        if level:
-            if level.lower() not in ['owner', 'admin', 'trusted']:
-                embed = discord.Embed(description="✕ Invalid level", color=EMBED_COLOR)
-                return await ctx.send(embed=embed)
-
-            to_remove = [
-                user_id for user_id, entry in self.whitelists.get(ctx.guild.id, {}).items()
-                if entry.level == level.lower()
-            ]
-            for user_id in to_remove:
-                del self.whitelists[ctx.guild.id][user_id]
-
-            embed = discord.Embed(description=f"+ Cleared `{len(to_remove)}` {level.lower()} entries", color=EMBED_COLOR)
-        else:
-            count = len(self.whitelists.get(ctx.guild.id, {}))
-            self.whitelists[ctx.guild.id] = {}
-            embed = discord.Embed(description=f"+ Cleared whitelist `{count}` entries", color=EMBED_COLOR)
-        await ctx.send(embed=embed)
-
-    @wlist.command(name='setlog')
-    @commands.has_permissions(administrator=True)
-    async def whitelist_setlog(self, ctx: commands.Context, channel: discord.TextChannel):
-        """Set the whitelist log channel"""
-        if not await self.owner_check(ctx):
-            return
-
-        settings = await self.get_settings(ctx.guild.id)
-        settings['log_channel'] = channel.id
-        await self.save_settings(ctx.guild.id)
-        embed = discord.Embed(description=f"+ Set whitelist log to {channel.mention}", color=EMBED_COLOR)
-        await ctx.send(embed=embed)
-
-    # ==================== ROLE WHITELIST COMMANDS ====================
-
-    @wlist.command(name='role')
-    @commands.has_permissions(administrator=True)
-    async def whitelist_role(self, ctx: commands.Context, role: discord.Role, *, reason: str = ""):
-        """Add a role to the whitelist (members with this role are immune to anti-nuke)"""
-        if not await self.owner_check(ctx):
-            return
-
-        settings = await self.get_settings(ctx.guild.id)
-        current_roles = len(self.whitelisted_roles.get(ctx.guild.id, {}))
-
-        if current_roles >= settings.get('max_roles', 10):
-            embed = discord.Embed(description=f"✕ Max whitelisted roles reached `{settings.get('max_roles', 10)}`", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-
-        if self.is_role_whitelisted(ctx.guild.id, role.id):
-            embed = discord.Embed(description=f"✕ {role.mention} is already whitelisted", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-
-        self.add_role_to_whitelist(ctx.guild.id, role.id, ctx.author.id, reason)
-        # Save to database
+        # Remove from database
         if self.db:
             try:
-                await self.db.add_whitelisted_role(ctx.guild.id, role.id, ctx.author.id, reason)
+                await self.db.remove_trusted_user(ctx.guild.id, user.id)
             except Exception as e:
-                logger.warning(f'Failed to save whitelisted role to database: {e}')
-        await self.log_whitelist_action(ctx.guild, 'add', role, ctx.author, reason=reason)
+                logger.warning(f'Failed to remove whitelisted user: {e}')
 
-        embed = discord.Embed(description=f"+ Added {role.mention} to whitelisted roles\n› Members with this role are now immune to anti-nuke", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"− Removed {user.mention} from whitelist", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
-    @wlist.command(name='unrole')
+    @wlist_remove.command(name='role')
+    @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def whitelist_unrole(self, ctx: commands.Context, role: discord.Role):
+    async def wlist_remove_role(self, ctx: commands.Context, role: discord.Role):
         """Remove a role from the whitelist"""
         if not await self.owner_check(ctx):
             return
 
-        if not self.is_role_whitelisted(ctx.guild.id, role.id):
-            embed = discord.Embed(description=f"✕ {role.mention} is not whitelisted", color=EMBED_COLOR)
+        await self.load_guild_whitelist(ctx.guild.id)
+
+        if role.id not in self.whitelisted_roles[ctx.guild.id]:
+            embed = discord.Embed(description=f"› {role.mention} is not whitelisted", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        self.remove_role_from_whitelist(ctx.guild.id, role.id)
+        self.whitelisted_roles[ctx.guild.id].discard(role.id)
+
         # Remove from database
         if self.db:
             try:
-                await self.db.remove_whitelisted_role(ctx.guild.id, role.id)
+                await self.db.remove_trusted_role(ctx.guild.id, role.id)
             except Exception as e:
-                logger.warning(f'Failed to remove whitelisted role from database: {e}')
-        await self.log_whitelist_action(ctx.guild, 'remove', role, ctx.author)
+                logger.warning(f'Failed to remove whitelisted role: {e}')
 
-        embed = discord.Embed(description=f"− Removed {role.mention} from whitelisted roles", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"− Removed {role.mention} from whitelist", color=EMBED_COLOR)
+        await ctx.send(embed=embed)
+
+    @wlist_remove.command(name='bot')
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def wlist_remove_bot(self, ctx: commands.Context, bot: discord.Member):
+        """Remove a bot from the whitelist"""
+        if not await self.owner_check(ctx):
+            return
+
+        if not bot.bot:
+            embed = discord.Embed(description="✕ That's not a bot", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        await self.load_guild_whitelist(ctx.guild.id)
+
+        if bot.id not in self.whitelisted_bots[ctx.guild.id]:
+            embed = discord.Embed(description=f"› {bot.mention} is not whitelisted", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        self.whitelisted_bots[ctx.guild.id].discard(bot.id)
+
+        # Remove from database
+        if self.db:
+            try:
+                await self.db.remove_trusted_bot(ctx.guild.id, bot.id)
+            except Exception as e:
+                logger.warning(f'Failed to remove whitelisted bot: {e}')
+
+        embed = discord.Embed(description=f"− Removed {bot.mention} from whitelist", color=EMBED_COLOR)
+        await ctx.send(embed=embed)
+
+    # ==================== CLEAR COMMANDS ====================
+
+    @wlist.command(name='clear')
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def wlist_clear(self, ctx: commands.Context, category: str = None):
+        """Clear whitelist (all, users, roles, or bots)"""
+        if not await self.owner_check(ctx):
+            return
+
+        # Extra safety: only server owner can clear
+        if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
+            embed = discord.Embed(description="✕ Only server owner can clear whitelist", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        await self.load_guild_whitelist(ctx.guild.id)
+
+        if category is None or category.lower() == 'all':
+            # Clear all
+            user_count = len(self.whitelisted_users.get(ctx.guild.id, set()))
+            role_count = len(self.whitelisted_roles.get(ctx.guild.id, set()))
+            bot_count = len(self.whitelisted_bots.get(ctx.guild.id, set()))
+            total = user_count + role_count + bot_count
+
+            self.whitelisted_users[ctx.guild.id] = set()
+            self.whitelisted_roles[ctx.guild.id] = set()
+            self.whitelisted_bots[ctx.guild.id] = set()
+
+            # Clear from database
+            if self.db:
+                try:
+                    # Clear all trusted entries for this guild
+                    for uid in list(self.whitelisted_users.get(ctx.guild.id, set())):
+                        await self.db.remove_trusted_user(ctx.guild.id, uid)
+                    for rid in list(self.whitelisted_roles.get(ctx.guild.id, set())):
+                        await self.db.remove_trusted_role(ctx.guild.id, rid)
+                    for bid in list(self.whitelisted_bots.get(ctx.guild.id, set())):
+                        await self.db.remove_trusted_bot(ctx.guild.id, bid)
+                except Exception as e:
+                    logger.warning(f'Failed to clear whitelist from database: {e}')
+
+            embed = discord.Embed(description=f"+ Cleared entire whitelist `{total} entries`", color=EMBED_COLOR)
+            await ctx.send(embed=embed)
+
+        elif category.lower() == 'users':
+            count = len(self.whitelisted_users.get(ctx.guild.id, set()))
+            for uid in list(self.whitelisted_users.get(ctx.guild.id, set())):
+                if self.db:
+                    try:
+                        await self.db.remove_trusted_user(ctx.guild.id, uid)
+                    except:
+                        pass
+            self.whitelisted_users[ctx.guild.id] = set()
+            embed = discord.Embed(description=f"+ Cleared `{count}` whitelisted users", color=EMBED_COLOR)
+            await ctx.send(embed=embed)
+
+        elif category.lower() == 'roles':
+            count = len(self.whitelisted_roles.get(ctx.guild.id, set()))
+            for rid in list(self.whitelisted_roles.get(ctx.guild.id, set())):
+                if self.db:
+                    try:
+                        await self.db.remove_trusted_role(ctx.guild.id, rid)
+                    except:
+                        pass
+            self.whitelisted_roles[ctx.guild.id] = set()
+            embed = discord.Embed(description=f"+ Cleared `{count}` whitelisted roles", color=EMBED_COLOR)
+            await ctx.send(embed=embed)
+
+        elif category.lower() == 'bots':
+            count = len(self.whitelisted_bots.get(ctx.guild.id, set()))
+            for bid in list(self.whitelisted_bots.get(ctx.guild.id, set())):
+                if self.db:
+                    try:
+                        await self.db.remove_trusted_bot(ctx.guild.id, bid)
+                    except:
+                        pass
+            self.whitelisted_bots[ctx.guild.id] = set()
+            embed = discord.Embed(description=f"+ Cleared `{count}` whitelisted bots", color=EMBED_COLOR)
+            await ctx.send(embed=embed)
+
+        else:
+            embed = discord.Embed(
+                description="**Clear Whitelist**\n\n› `wlist clear` − Clear all\n› `wlist clear users`\n› `wlist clear roles`\n› `wlist clear bots`",
+                color=EMBED_COLOR
+            )
+            await ctx.send(embed=embed)
+
+    # ==================== LIST COMMANDS ====================
+
+    @wlist.command(name='users')
+    @commands.guild_only()
+    @commands.has_permissions(administrator=True)
+    async def wlist_users(self, ctx: commands.Context):
+        """View all whitelisted users"""
+        if not await self.owner_check(ctx):
+            return
+
+        await self.load_guild_whitelist(ctx.guild.id)
+        users = self.whitelisted_users.get(ctx.guild.id, set())
+
+        if not users:
+            embed = discord.Embed(description="**Whitelisted Users** `0`\n\n› No whitelisted users", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        user_list = []
+        for uid in users:
+            member = ctx.guild.get_member(uid)
+            user_list.append(f"› {member.mention}" if member else f"› `{uid}`")
+
+        embed = discord.Embed(
+            description=f"**Whitelisted Users** `{len(users)}`\n\n" + "\n".join(user_list),
+            color=EMBED_COLOR
+        )
         await ctx.send(embed=embed)
 
     @wlist.command(name='roles')
+    @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def whitelist_roles_list(self, ctx: commands.Context):
-        """List all whitelisted roles"""
+    async def wlist_roles(self, ctx: commands.Context):
+        """View all whitelisted roles"""
         if not await self.owner_check(ctx):
             return
 
-        role_entries = self.get_whitelisted_roles(ctx.guild.id)
+        await self.load_guild_whitelist(ctx.guild.id)
+        roles = self.whitelisted_roles.get(ctx.guild.id, set())
 
-        if not role_entries:
-            embed = discord.Embed(description="No whitelisted roles\nUse `wlist role @role` to add one", color=EMBED_COLOR)
+        if not roles:
+            embed = discord.Embed(description="**Whitelisted Roles** `0`\n\n› No whitelisted roles", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        roles_list = []
-        for role_id, entry in role_entries.items():
-            role = ctx.guild.get_role(role_id)
-            if role:
-                added_by = ctx.guild.get_member(entry.added_by)
-                added_by_str = added_by.mention if added_by else f"`{entry.added_by}`"
-                roles_list.append(f"› {role.mention} − added by {added_by_str}")
-            else:
-                roles_list.append(f"› `{role_id}` (deleted)")
+        role_list = []
+        for rid in roles:
+            role = ctx.guild.get_role(rid)
+            role_list.append(f"› {role.mention}" if role else f"› `{rid}`")
 
-        embed = discord.Embed(color=EMBED_COLOR)
-        embed.description = f"**Whitelisted Roles** `{len(role_entries)}`\n\n" + "\n".join(roles_list)
+        embed = discord.Embed(
+            description=f"**Whitelisted Roles** `{len(roles)}`\n\n" + "\n".join(role_list),
+            color=EMBED_COLOR
+        )
         await ctx.send(embed=embed)
 
-    @wlist.command(name='clearroles')
+    @wlist.command(name='bots')
+    @commands.guild_only()
     @commands.has_permissions(administrator=True)
-    async def whitelist_clear_roles(self, ctx: commands.Context):
-        """Clear all whitelisted roles"""
+    async def wlist_bots(self, ctx: commands.Context):
+        """View all whitelisted bots"""
         if not await self.owner_check(ctx):
             return
 
-        count = len(self.whitelisted_roles.get(ctx.guild.id, {}))
-        self.whitelisted_roles[ctx.guild.id] = {}
-        # Clear from database
-        if self.db:
-            try:
-                await self.db.clear_whitelisted_roles(ctx.guild.id)
-            except Exception as e:
-                logger.warning(f'Failed to clear whitelisted roles from database: {e}')
-        embed = discord.Embed(description=f"+ Cleared `{count}` whitelisted roles", color=EMBED_COLOR)
+        await self.load_guild_whitelist(ctx.guild.id)
+        bots = self.whitelisted_bots.get(ctx.guild.id, set())
+
+        if not bots:
+            embed = discord.Embed(description="**Whitelisted Bots** `0`\n\n› No whitelisted bots", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        bot_list = []
+        for bid in bots:
+            member = ctx.guild.get_member(bid)
+            bot_list.append(f"› {member.mention}" if member else f"› `{bid}`")
+
+        embed = discord.Embed(
+            description=f"**Whitelisted Bots** `{len(bots)}`\n\n" + "\n".join(bot_list),
+            color=EMBED_COLOR
+        )
         await ctx.send(embed=embed)
 
 
 async def setup(bot):
-    await bot.add_cog(Whitelist(bot))
+    cog = Whitelist(bot)
+    await bot.add_cog(cog)
+    # Preload whitelist data after cog is added
+    bot.loop.create_task(cog.preload_all_guilds())
