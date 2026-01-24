@@ -183,7 +183,7 @@ class EmbedBuilder:
             color = EmbedStyle.SUCCESS
 
         return EmbedBuilder.create_base(
-            title=f"✅ {title}" if not title.startswith(("✅", "<")) else title,
+            title=f"➕ {title}" if not title.startswith(("➕", "➖", "✖️", "<")) else title,
             description=description,
             color=color,
             **kwargs
@@ -204,7 +204,7 @@ class EmbedBuilder:
             color = EmbedStyle.ERROR
 
         return EmbedBuilder.create_base(
-            title=f"❌ {title}" if not title.startswith(("❌", "<")) else title,
+            title=f"✖️ {title}" if not title.startswith(("➕", "➖", "✖️", "<")) else title,
             description=description,
             color=color,
             **kwargs
@@ -225,7 +225,7 @@ class EmbedBuilder:
             color = EmbedStyle.WARNING
 
         return EmbedBuilder.create_base(
-            title=f"⚠️ {title}" if not title.startswith(("⚠️", "<")) else title,
+            title=f"➖ {title}" if not title.startswith(("➕", "➖", "✖️", "<")) else title,
             description=description,
             color=color,
             **kwargs
@@ -246,7 +246,7 @@ class EmbedBuilder:
             color = EmbedStyle.INFO
 
         return EmbedBuilder.create_base(
-            title=f"ℹ️ {title}" if not title.startswith(("ℹ️", "<")) else title,
+            title=f"➕ {title}" if not title.startswith(("➕", "➖", "✖️", "<")) else title,
             description=description,
             color=color,
             **kwargs
@@ -540,7 +540,7 @@ def success_embed(title: str, description: str = None, bot=None, guild_id: int =
         color = EmbedStyle.SUCCESS
 
     return discord.Embed(
-        title=f"✅ {title}",
+        title=f"➕ {title}",
         description=description,
         color=color,
         timestamp=datetime.utcnow()
@@ -555,7 +555,7 @@ def error_embed(title: str, description: str = None, bot=None, guild_id: int = N
         color = EmbedStyle.ERROR
 
     return discord.Embed(
-        title=f"❌ {title}",
+        title=f"✖️ {title}",
         description=description,
         color=color,
         timestamp=datetime.utcnow()
@@ -570,7 +570,7 @@ def warning_embed(title: str, description: str = None, bot=None, guild_id: int =
         color = EmbedStyle.WARNING
 
     return discord.Embed(
-        title=f"⚠️ {title}",
+        title=f"➖ {title}",
         description=description,
         color=color,
         timestamp=datetime.utcnow()
@@ -585,7 +585,7 @@ def info_embed(title: str, description: str = None, bot=None, guild_id: int = No
         color = EmbedStyle.INFO
 
     return discord.Embed(
-        title=f"ℹ️ {title}",
+        title=f"➕ {title}",
         description=description,
         color=color,
         timestamp=datetime.utcnow()
@@ -600,7 +600,7 @@ def loading_embed(title: str = "Processing...", description: str = None, bot=Non
         color = EmbedStyle.INFO
 
     return discord.Embed(
-        title=f"⏳ {title}",
+        title=f"➕ {title}",
         description=description or "Please wait...",
         color=color,
         timestamp=datetime.utcnow()
