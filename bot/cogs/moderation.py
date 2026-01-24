@@ -162,19 +162,96 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='unban')
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
-    async def unban(self, ctx: commands.Context, user_id: int, *, reason: str = None):
-        """Unban a user by ID"""
+    async def unban(self, ctx: commands.Context, user_input: str, *, reason: str = None):
+        """Unban a user by ID, mention, or username"""
+        import re
+
+        user = None
+        user_id = None
+
+        # Try to extract ID from mention format <@123456789> or <@!123456789>
+        mention_match = re.match(r'<@!?(\d+)>', user_input)
+        if mention_match:
+            user_id = int(mention_match.group(1))
+        # Try to parse as raw number
+        elif user_input.isdigit():
+            user_id = int(user_input)
+
         try:
-            user = await self.bot.fetch_user(user_id)
-            await ctx.guild.unban(user, reason=f"{reason or 'No reason'} | By: {ctx.author}")
-            embed = discord.Embed(description=f"➕ Unbanned {user.mention}", color=EMBED_COLOR)
+            # If we have a user ID, try to fetch and unban
+            if user_id:
+                user = await self.bot.fetch_user(user_id)
+                await ctx.guild.unban(user, reason=f"{reason or 'No reason'} | By: {ctx.author}")
+            else:
+                # Search ban list by username
+                bans = [entry async for entry in ctx.guild.bans()]
+                user_input_lower = user_input.lower().lstrip('@')
+
+                # Search for matching username
+                for ban_entry in bans:
+                    if (ban_entry.user.name.lower() == user_input_lower or
+                        (ban_entry.user.discriminator != '0' and
+                         f"{ban_entry.user.name.lower()}#{ban_entry.user.discriminator}" == user_input_lower)):
+                        user = ban_entry.user
+                        break
+
+                if not user:
+                    # Try partial match
+                    for ban_entry in bans:
+                        if user_input_lower in ban_entry.user.name.lower():
+                            user = ban_entry.user
+                            break
+
+                if not user:
+                    embed = discord.Embed(description=f"✖️ No banned user found matching `{user_input}`", color=EMBED_COLOR)
+                    return await ctx.send(embed=embed)
+
+                await ctx.guild.unban(user, reason=f"{reason or 'No reason'} | By: {ctx.author}")
+
+            embed = discord.Embed(description=f"➕ Unbanned **{user.name}** (`{user.id}`)", color=EMBED_COLOR)
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'unban', ctx.author, user, reason)
+
         except discord.NotFound:
             embed = discord.Embed(description="✖️ User not found or not banned", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         except discord.Forbidden:
             embed = discord.Embed(description="✖️ Missing permissions to unban", color=EMBED_COLOR)
+            await ctx.send(embed=embed)
+
+    @commands.hybrid_command(name='bans', aliases=['banlist', 'banned'])
+    @commands.has_permissions(ban_members=True)
+    async def bans(self, ctx: commands.Context, page: int = 1):
+        """List all banned users"""
+        try:
+            bans = [entry async for entry in ctx.guild.bans()]
+
+            if not bans:
+                embed = discord.Embed(description="➕ No banned users", color=EMBED_COLOR)
+                return await ctx.send(embed=embed)
+
+            # Paginate - 10 per page
+            per_page = 10
+            total_pages = (len(bans) + per_page - 1) // per_page
+            page = max(1, min(page, total_pages))
+            start = (page - 1) * per_page
+            end = start + per_page
+
+            ban_list = []
+            for entry in bans[start:end]:
+                user = entry.user
+                reason = entry.reason or "No reason"
+                if len(reason) > 30:
+                    reason = reason[:27] + "..."
+                ban_list.append(f"➖ **{user.name}** (`{user.id}`)\n   {reason}")
+
+            embed = discord.Embed(color=EMBED_COLOR)
+            embed.description = f"**Banned Users** ({len(bans)} total)\n\n" + "\n".join(ban_list)
+            embed.set_footer(text=f"Page {page}/{total_pages} ➖ Use !bans <page>")
+            await ctx.send(embed=embed)
+
+        except discord.Forbidden:
+            embed = discord.Embed(description="✖️ Missing permissions to view bans", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(name='massban')
