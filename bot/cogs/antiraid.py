@@ -133,7 +133,7 @@ class AntiRaid(commands.Cog):
     async def owner_check(self, ctx) -> bool:
         """Check ownership and send error if not owner"""
         if not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can use this command", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only server owner can use this command", color=0x2b2d31)
             await ctx.send(embed=embed)
             return False
         return True
@@ -391,7 +391,7 @@ class AntiRaid(commands.Cog):
         settings['enabled'] = True
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description="+ Enabled anti-raid protection", color=self.EMBED_COLOR)
+        embed = discord.Embed(description="➕ Enabled anti-raid protection", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antiraid.command(name='disable')
@@ -405,7 +405,7 @@ class AntiRaid(commands.Cog):
         settings['enabled'] = False
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description="− Disabled anti-raid protection", color=self.EMBED_COLOR)
+        embed = discord.Embed(description="➖ Disabled anti-raid protection", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antiraid.command(name='raidmode')
@@ -417,17 +417,17 @@ class AntiRaid(commands.Cog):
 
         if action.lower() in ['on', 'enable']:
             await self.enable_raid_mode(ctx.guild, "Manually enabled")
-            embed = discord.Embed(description="+ Raid mode enabled", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="➕ Raid mode enabled", color=self.EMBED_COLOR)
         elif action.lower() in ['off', 'disable']:
             await self.disable_raid_mode(ctx.guild)
-            embed = discord.Embed(description="− Raid mode disabled", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="➖ Raid mode disabled", color=self.EMBED_COLOR)
         else:
             if ctx.guild.id in self.raid_mode and self.raid_mode[ctx.guild.id].get('enabled'):
                 await self.disable_raid_mode(ctx.guild)
-                embed = discord.Embed(description="− Raid mode disabled", color=self.EMBED_COLOR)
+                embed = discord.Embed(description="➖ Raid mode disabled", color=self.EMBED_COLOR)
             else:
                 await self.enable_raid_mode(ctx.guild, "Manually enabled")
-                embed = discord.Embed(description="+ Raid mode enabled", color=self.EMBED_COLOR)
+                embed = discord.Embed(description="➕ Raid mode enabled", color=self.EMBED_COLOR)
 
         await ctx.send(embed=embed)
 
@@ -440,14 +440,14 @@ class AntiRaid(commands.Cog):
 
         valid = ['kick', 'ban', 'quarantine']
         if action.lower() not in valid:
-            embed = discord.Embed(description=f"✕ Invalid action. Use: `{', '.join(valid)}`", color=self.EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Invalid action. Use: `{', '.join(valid)}`", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
         settings['action'] = action.lower()
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description=f"+ Set raid action to `{action.lower()}`", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set raid action to `{action.lower()}`", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antiraid.command(name='threshold')
@@ -458,11 +458,11 @@ class AntiRaid(commands.Cog):
             return
 
         if joins < 3 or joins > 50:
-            embed = discord.Embed(description="✕ Joins must be 3-50", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Joins must be 3-50", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if timeframe < 5 or timeframe > 60:
-            embed = discord.Embed(description="✕ Timeframe must be 5-60 seconds", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Timeframe must be 5-60 seconds", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
@@ -470,7 +470,7 @@ class AntiRaid(commands.Cog):
         settings['join_timeframe'] = timeframe
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description=f"+ Set threshold to `{joins} joins/{timeframe}s`", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set threshold to `{joins} joins/{timeframe}s`", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antiraid.command(name='minage')
@@ -481,14 +481,14 @@ class AntiRaid(commands.Cog):
             return
 
         if days < 0 or days > 365:
-            embed = discord.Embed(description="✕ Days must be 0-365", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Days must be 0-365", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
         settings['min_account_age'] = days
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description=f"+ Set min account age to `{days} days`", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set min account age to `{days} days`", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antiraid.command(name='status')
