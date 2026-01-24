@@ -23,15 +23,14 @@ class Moderation(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.db = None  # Will be injected by bot
+        self.db = None
         self.warnings: dict = defaultdict(lambda: defaultdict(list))
         self.guild_settings: dict = {}
         self._settings_loaded: set = set()
 
     async def get_settings(self, guild_id: int) -> dict:
-        """Get guild moderation settings - loads from database if available"""
+        """Get guild moderation settings"""
         if guild_id not in self.guild_settings:
-            # Default settings
             self.guild_settings[guild_id] = {
                 'warn_threshold': 3,
                 'warn_action': 'mute',
@@ -41,18 +40,14 @@ class Moderation(commands.Cog):
                 'log_channel': None,
             }
 
-            # Try to load from database
             if self.db and guild_id not in self._settings_loaded:
                 try:
                     db_settings = await self.db.get_guild_settings(guild_id, 'moderation')
                     if db_settings:
                         self.guild_settings[guild_id].update(db_settings)
-
-                    # Load warnings from database
-                    # Note: warnings are loaded on-demand per user
                     self._settings_loaded.add(guild_id)
                 except Exception as e:
-                    logger.warning(f'Failed to load mod settings from database: {e}')
+                    logger.warning(f'Failed to load mod settings: {e}')
 
         return self.guild_settings[guild_id]
 
@@ -60,21 +55,11 @@ class Moderation(commands.Cog):
         """Save guild settings to database"""
         if not self.db:
             return
-
         try:
             settings = self.guild_settings.get(guild_id, {})
             await self.db.save_guild_settings(guild_id, 'moderation', settings)
         except Exception as e:
-            logger.warning(f'Failed to save mod settings to database: {e}')
-
-    async def get_warnings_from_db(self, guild_id: int, user_id: int) -> list:
-        """Get warnings from database"""
-        if self.db:
-            try:
-                return await self.db.get_warnings(guild_id, user_id)
-            except:
-                pass
-        return self.warnings[guild_id].get(user_id, [])
+            logger.warning(f'Failed to save mod settings: {e}')
 
     async def add_warning_to_db(self, guild_id: int, user_id: int, moderator_id: int, reason: str):
         """Add warning to database"""
@@ -82,16 +67,18 @@ class Moderation(commands.Cog):
             try:
                 await self.db.add_warning(guild_id, user_id, moderator_id, reason)
             except Exception as e:
-                logger.warning(f'Failed to save warning to database: {e}')
+                logger.warning(f'Failed to save warning: {e}')
+
+    # ==================== HELPER FUNCTIONS ====================
 
     async def resolve_member(self, ctx, user_input: str) -> Optional[discord.Member]:
-        """Resolve a member from User ID, mention, or username search"""
+        """Resolve a member from User ID, mention, or username"""
         if not user_input:
             return None
 
         user_input = user_input.strip()
 
-        # Try to extract ID from mention format <@123456789> or <@!123456789>
+        # Extract ID from mention <@123> or <@!123>
         mention_match = re.match(r'<@!?(\d+)>', user_input)
         if mention_match:
             user_id = int(mention_match.group(1))
@@ -99,13 +86,12 @@ class Moderation(commands.Cog):
             if member:
                 return member
 
-        # Try to parse as raw user ID
+        # Try as raw user ID
         if user_input.isdigit():
             user_id = int(user_input)
             member = ctx.guild.get_member(user_id)
             if member:
                 return member
-            # Try to fetch if not in cache
             try:
                 member = await ctx.guild.fetch_member(user_id)
                 if member:
@@ -139,16 +125,13 @@ class Moderation(commands.Cog):
 
         user_input = user_input.strip()
 
-        # Try to extract ID from mention format
         mention_match = re.match(r'<@!?(\d+)>', user_input)
         if mention_match:
-            user_id = int(mention_match.group(1))
             try:
-                return await self.bot.fetch_user(user_id)
+                return await self.bot.fetch_user(int(mention_match.group(1)))
             except:
                 return None
 
-        # Try to parse as raw user ID
         if user_input.isdigit():
             try:
                 return await self.bot.fetch_user(int(user_input))
@@ -156,6 +139,25 @@ class Moderation(commands.Cog):
                 return None
 
         return None
+
+    def parse_duration(self, duration_str: str) -> tuple:
+        """Parse duration string like 10m, 1h, 1d. Returns (seconds, display_str)"""
+        duration_map = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
+        try:
+            unit = duration_str[-1].lower()
+            if unit in duration_map:
+                amount = int(duration_str[:-1])
+                seconds = amount * duration_map[unit]
+                return (min(seconds, 28 * 24 * 3600), duration_str)
+        except:
+            pass
+        return (3600, "1h")
+
+    def is_duration(self, text: str) -> bool:
+        """Check if text looks like a duration"""
+        if not text:
+            return False
+        return bool(re.match(r'^\d+[smhd]$', text.lower()))
 
     async def dm_user(self, member: discord.Member, action: str, reason: str,
                       duration: str = None, guild_name: str = None):
@@ -203,8 +205,16 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='ban')
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
-    async def ban(self, ctx: commands.Context, user_input: str, *, reason: str = None):
-        """Ban a member by ID, mention, or username"""
+    async def ban(self, ctx: commands.Context, *, args: str = None):
+        """Ban a member (Usage: !ban <user> [reason])"""
+        if not args:
+            embed = discord.Embed(description="✖️ Usage: `!ban <user> [reason]`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        parts = args.split(maxsplit=1)
+        user_input = parts[0]
+        reason = parts[1] if len(parts) > 1 else None
+
         member = await self.resolve_member(ctx, user_input)
 
         if not member:
@@ -237,7 +247,6 @@ class Moderation(commands.Cog):
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
-
         if settings['dm_on_action']:
             await self.dm_user(member, "banned", reason, guild_name=ctx.guild.name)
 
@@ -255,46 +264,46 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='unban')
     @commands.has_permissions(ban_members=True)
     @commands.bot_has_permissions(ban_members=True)
-    async def unban(self, ctx: commands.Context, user_input: str, *, reason: str = None):
-        """Unban a user by ID, mention, or username"""
+    async def unban(self, ctx: commands.Context, *, args: str = None):
+        """Unban a user (Usage: !unban <user> [reason])"""
+        if not args:
+            embed = discord.Embed(description="✖️ Usage: `!unban <user_id or username>`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        parts = args.split(maxsplit=1)
+        user_input = parts[0]
+        reason = parts[1] if len(parts) > 1 else None
+
         user = None
         user_id = None
 
-        # Try to extract ID from mention format <@123456789> or <@!123456789>
         mention_match = re.match(r'<@!?(\d+)>', user_input)
         if mention_match:
             user_id = int(mention_match.group(1))
-        # Try to parse as raw number
         elif user_input.isdigit():
             user_id = int(user_input)
 
         try:
-            # If we have a user ID, try to fetch and unban
             if user_id:
                 user = await self.bot.fetch_user(user_id)
                 await ctx.guild.unban(user, reason=f"{reason or 'No reason'} | By: {ctx.author}")
             else:
-                # Search ban list by username
                 bans = [entry async for entry in ctx.guild.bans()]
                 user_input_lower = user_input.lower().lstrip('@')
 
-                # Search for matching username
                 for ban_entry in bans:
-                    if (ban_entry.user.name.lower() == user_input_lower or
-                        (ban_entry.user.discriminator != '0' and
-                         f"{ban_entry.user.name.lower()}#{ban_entry.user.discriminator}" == user_input_lower)):
+                    if ban_entry.user.name.lower() == user_input_lower:
                         user = ban_entry.user
                         break
 
                 if not user:
-                    # Try partial match
                     for ban_entry in bans:
                         if user_input_lower in ban_entry.user.name.lower():
                             user = ban_entry.user
                             break
 
                 if not user:
-                    embed = discord.Embed(description=f"✖️ No banned user found matching `{user_input}`", color=EMBED_COLOR)
+                    embed = discord.Embed(description=f"✖️ No banned user found: `{user_input}`", color=EMBED_COLOR)
                     return await ctx.send(embed=embed)
 
                 await ctx.guild.unban(user, reason=f"{reason or 'No reason'} | By: {ctx.author}")
@@ -321,7 +330,6 @@ class Moderation(commands.Cog):
                 embed = discord.Embed(description="➕ No banned users", color=EMBED_COLOR)
                 return await ctx.send(embed=embed)
 
-            # Paginate - 10 per page
             per_page = 10
             total_pages = (len(bans) + per_page - 1) // per_page
             page = max(1, min(page, total_pages))
@@ -348,7 +356,7 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='massban')
     @commands.has_permissions(administrator=True)
     @commands.bot_has_permissions(ban_members=True)
-    async def massban(self, ctx: commands.Context, user_ids: str, *, reason: str = "Mass ban"):
+    async def massban(self, ctx: commands.Context, *, user_ids: str):
         """Ban multiple users by ID (comma separated)"""
         ids = [int(i.strip()) for i in user_ids.split(',') if i.strip().isdigit()]
 
@@ -363,7 +371,7 @@ class Moderation(commands.Cog):
         banned = 0
         for user_id in ids:
             try:
-                await ctx.guild.ban(discord.Object(id=user_id), reason=f"Mass ban: {reason} | By: {ctx.author}")
+                await ctx.guild.ban(discord.Object(id=user_id), reason=f"Mass ban | By: {ctx.author}")
                 banned += 1
             except:
                 pass
@@ -371,13 +379,21 @@ class Moderation(commands.Cog):
         embed = discord.Embed(description=f"➕ Banned `{banned}/{len(ids)}` users", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
-    # ==================== KICK COMMANDS ====================
+    # ==================== KICK COMMAND ====================
 
     @commands.hybrid_command(name='kick')
     @commands.has_permissions(kick_members=True)
     @commands.bot_has_permissions(kick_members=True)
-    async def kick(self, ctx: commands.Context, user_input: str, *, reason: str = None):
-        """Kick a member by ID, mention, or username"""
+    async def kick(self, ctx: commands.Context, *, args: str = None):
+        """Kick a member (Usage: !kick <user> [reason])"""
+        if not args:
+            embed = discord.Embed(description="✖️ Usage: `!kick <user> [reason]`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        parts = args.split(maxsplit=1)
+        user_input = parts[0]
+        reason = parts[1] if len(parts) > 1 else None
+
         member = await self.resolve_member(ctx, user_input)
 
         if not member:
@@ -393,7 +409,6 @@ class Moderation(commands.Cog):
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
-
         if settings['dm_on_action']:
             await self.dm_user(member, "kicked", reason, guild_name=ctx.guild.name)
 
@@ -413,8 +428,25 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='mute', aliases=['timeout'])
     @commands.has_permissions(moderate_members=True)
     @commands.bot_has_permissions(moderate_members=True)
-    async def mute(self, ctx: commands.Context, user_input: str, duration: str = "1h", *, reason: str = None):
-        """Timeout a member by ID, mention, or username (e.g., 10m, 1h, 1d)"""
+    async def mute(self, ctx: commands.Context, *, args: str = None):
+        """Timeout a member (Usage: !mute <user> [duration] [reason])"""
+        if not args:
+            embed = discord.Embed(description="✖️ Usage: `!mute <user> [duration] [reason]`\n› Example: `!mute @user 1h spamming`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        parts = args.split()
+        user_input = parts[0]
+        duration_str = "1h"
+        reason = None
+
+        if len(parts) > 1:
+            if self.is_duration(parts[1]):
+                duration_str = parts[1]
+                if len(parts) > 2:
+                    reason = " ".join(parts[2:])
+            else:
+                reason = " ".join(parts[1:])
+
         member = await self.resolve_member(ctx, user_input)
 
         if not member:
@@ -425,27 +457,19 @@ class Moderation(commands.Cog):
             embed = discord.Embed(description="✖️ Cannot mute someone with higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        duration_map = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
-        try:
-            unit = duration[-1].lower()
-            amount = int(duration[:-1])
-            seconds = amount * duration_map.get(unit, 60)
-        except:
-            seconds = 3600
-
-        seconds = min(seconds, 28 * 24 * 3600)
+        seconds, duration_display = self.parse_duration(duration_str)
         settings = await self.get_settings(ctx.guild.id)
 
         if settings['dm_on_action']:
-            await self.dm_user(member, "muted", reason, duration=duration, guild_name=ctx.guild.name)
+            await self.dm_user(member, "muted", reason, duration=duration_display, guild_name=ctx.guild.name)
 
         try:
             await member.timeout(timedelta(seconds=seconds), reason=f"{reason or 'No reason'} | By: {ctx.author}")
-            embed = discord.Embed(description=f"➕ Muted {member.mention} for `{duration}`", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Muted {member.mention} for `{duration_display}`", color=EMBED_COLOR)
             if reason:
                 embed.description += f"\n› Reason: `{reason}`"
             await ctx.send(embed=embed)
-            await self.log_mod_action(ctx.guild, 'mute', ctx.author, member, reason, duration)
+            await self.log_mod_action(ctx.guild, 'mute', ctx.author, member, reason, duration_display)
         except discord.Forbidden:
             embed = discord.Embed(description="✖️ Missing permissions to mute", color=EMBED_COLOR)
             await ctx.send(embed=embed)
@@ -453,8 +477,16 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='unmute', aliases=['untimeout'])
     @commands.has_permissions(moderate_members=True)
     @commands.bot_has_permissions(moderate_members=True)
-    async def unmute(self, ctx: commands.Context, user_input: str, *, reason: str = None):
-        """Remove timeout from a member by ID, mention, or username"""
+    async def unmute(self, ctx: commands.Context, *, args: str = None):
+        """Remove timeout (Usage: !unmute <user> [reason])"""
+        if not args:
+            embed = discord.Embed(description="✖️ Usage: `!unmute <user> [reason]`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        parts = args.split(maxsplit=1)
+        user_input = parts[0]
+        reason = parts[1] if len(parts) > 1 else None
+
         member = await self.resolve_member(ctx, user_input)
 
         if not member:
@@ -475,8 +507,16 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='nick', aliases=['nickname', 'setnick'])
     @commands.has_permissions(manage_nicknames=True)
     @commands.bot_has_permissions(manage_nicknames=True)
-    async def nick(self, ctx: commands.Context, user_input: str, *, nickname: str = None):
-        """Change a member's nickname by ID, mention, or username"""
+    async def nick(self, ctx: commands.Context, *, args: str = None):
+        """Change nickname (Usage: !nick <user> [new_nickname])"""
+        if not args:
+            embed = discord.Embed(description="✖️ Usage: `!nick <user> [new_nickname]`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        parts = args.split(maxsplit=1)
+        user_input = parts[0]
+        nickname = parts[1] if len(parts) > 1 else None
+
         member = await self.resolve_member(ctx, user_input)
 
         if not member:
@@ -488,7 +528,6 @@ class Moderation(commands.Cog):
             return await ctx.send(embed=embed)
 
         try:
-            old_nick = member.display_name
             await member.edit(nick=nickname)
             if nickname:
                 embed = discord.Embed(description=f"➕ Changed {member.mention}'s nickname to `{nickname}`", color=EMBED_COLOR)
@@ -503,8 +542,16 @@ class Moderation(commands.Cog):
 
     @commands.hybrid_command(name='warn')
     @commands.has_permissions(moderate_members=True)
-    async def warn(self, ctx: commands.Context, user_input: str, *, reason: str = "No reason"):
-        """Warn a member by ID, mention, or username"""
+    async def warn(self, ctx: commands.Context, *, args: str = None):
+        """Warn a member (Usage: !warn <user> [reason])"""
+        if not args:
+            embed = discord.Embed(description="✖️ Usage: `!warn <user> [reason]`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        parts = args.split(maxsplit=1)
+        user_input = parts[0]
+        reason = parts[1] if len(parts) > 1 else "No reason"
+
         member = await self.resolve_member(ctx, user_input)
 
         if not member:
@@ -527,8 +574,6 @@ class Moderation(commands.Cog):
             'time': datetime.utcnow().isoformat()
         }
         self.warnings[ctx.guild.id][member.id].append(warning)
-
-        # Save to database
         await self.add_warning_to_db(ctx.guild.id, member.id, ctx.author.id, reason)
 
         warn_count = len(self.warnings[ctx.guild.id][member.id])
@@ -547,23 +592,27 @@ class Moderation(commands.Cog):
             action = settings['warn_action']
             if action == 'mute':
                 duration = timedelta(seconds=settings['warn_mute_duration'])
-                await member.timeout(duration, reason=f"Warning threshold reached")
+                await member.timeout(duration, reason="Warning threshold reached")
                 embed = discord.Embed(description=f"➕ Muted {member.mention} for reaching warn threshold", color=EMBED_COLOR)
                 await ctx.send(embed=embed)
             elif action == 'kick':
-                await member.kick(reason=f"Warning threshold reached")
+                await member.kick(reason="Warning threshold reached")
                 embed = discord.Embed(description=f"➕ Kicked {member.mention} for reaching warn threshold", color=EMBED_COLOR)
                 await ctx.send(embed=embed)
             elif action == 'ban':
-                await member.ban(reason=f"Warning threshold reached")
+                await member.ban(reason="Warning threshold reached")
                 embed = discord.Embed(description=f"➕ Banned {member.mention} for reaching warn threshold", color=EMBED_COLOR)
                 await ctx.send(embed=embed)
             self.warnings[ctx.guild.id][member.id] = []
 
     @commands.hybrid_command(name='warnings', aliases=['warns'])
     @commands.has_permissions(moderate_members=True)
-    async def warnings_cmd(self, ctx: commands.Context, user_input: str):
-        """View warnings for a member by ID, mention, or username"""
+    async def warnings_cmd(self, ctx: commands.Context, *, user_input: str = None):
+        """View warnings (Usage: !warnings <user>)"""
+        if not user_input:
+            embed = discord.Embed(description="✖️ Usage: `!warnings <user>`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         member = await self.resolve_member(ctx, user_input)
 
         if not member:
@@ -586,8 +635,12 @@ class Moderation(commands.Cog):
 
     @commands.hybrid_command(name='clearwarns', aliases=['clearwarnings'])
     @commands.has_permissions(administrator=True)
-    async def clearwarns(self, ctx: commands.Context, user_input: str):
-        """Clear all warnings for a member by ID, mention, or username"""
+    async def clearwarns(self, ctx: commands.Context, *, user_input: str = None):
+        """Clear warnings (Usage: !clearwarns <user>)"""
+        if not user_input:
+            embed = discord.Embed(description="✖️ Usage: `!clearwarns <user>`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         member = await self.resolve_member(ctx, user_input)
 
         if not member:
@@ -597,7 +650,6 @@ class Moderation(commands.Cog):
         count = len(self.warnings[ctx.guild.id].get(member.id, []))
         self.warnings[ctx.guild.id][member.id] = []
 
-        # Clear from database
         if self.db:
             try:
                 await self.db.clear_warnings(ctx.guild.id, member.id)
@@ -613,30 +665,18 @@ class Moderation(commands.Cog):
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
     async def purge(self, ctx: commands.Context, target: str = None, amount: int = None):
-        """Delete messages from the channel
-
-        Usage:
-        !purge 10 - Delete 10 messages
-        !purge @user 10 - Delete 10 messages from user
-        !purge username 10 - Delete 10 messages from user
-        """
-        # Parse arguments
+        """Delete messages (Usage: !purge [amount] or !purge <user> [amount])"""
         member = None
 
         if target is None:
-            # No args - default to 10
             amount = 10
         elif target.isdigit():
-            # Just a number: !purge 10
             amount = int(target)
         else:
-            # User input: !purge @user 10 or !purge username 10
             member = await self.resolve_member(ctx, target)
-
             if member is None:
                 embed = discord.Embed(description=f"✖️ User not found: `{target}`", color=EMBED_COLOR)
                 return await ctx.send(embed=embed)
-
             if amount is None:
                 amount = 10
 
@@ -648,9 +688,7 @@ class Moderation(commands.Cog):
             await ctx.message.delete()
 
             if member:
-                # Purge from specific user - search more messages to find enough
                 deleted_messages = []
-
                 async for message in ctx.channel.history(limit=500):
                     if message.author.id == member.id:
                         deleted_messages.append(message)
@@ -659,10 +697,8 @@ class Moderation(commands.Cog):
 
                 if deleted_messages:
                     await ctx.channel.delete_messages(deleted_messages)
-
                 embed = discord.Embed(description=f"➕ Deleted `{len(deleted_messages)}` messages from {member.mention}", color=EMBED_COLOR)
             else:
-                # Purge all messages
                 deleted = await ctx.channel.purge(limit=amount)
                 embed = discord.Embed(description=f"➕ Deleted `{len(deleted)}` messages", color=EMBED_COLOR)
 
@@ -679,8 +715,16 @@ class Moderation(commands.Cog):
     @commands.hybrid_command(name='purgeuser')
     @commands.has_permissions(manage_messages=True)
     @commands.bot_has_permissions(manage_messages=True)
-    async def purgeuser(self, ctx: commands.Context, user_input: str, amount: int = 100):
-        """Delete messages from a specific user by ID, mention, or username"""
+    async def purgeuser(self, ctx: commands.Context, *, args: str = None):
+        """Delete user's messages (Usage: !purgeuser <user> [amount])"""
+        if not args:
+            embed = discord.Embed(description="✖️ Usage: `!purgeuser <user> [amount]`", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        parts = args.split()
+        user_input = parts[0]
+        amount = int(parts[1]) if len(parts) > 1 and parts[1].isdigit() else 100
+
         member = await self.resolve_member(ctx, user_input)
 
         if not member:
@@ -693,7 +737,6 @@ class Moderation(commands.Cog):
 
         try:
             deleted_messages = []
-
             async for message in ctx.channel.history(limit=500):
                 if message.author.id == member.id:
                     deleted_messages.append(message)
@@ -714,13 +757,13 @@ class Moderation(commands.Cog):
             embed = discord.Embed(description="✖️ Failed to delete (messages may be too old)", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
-    # ==================== SLOWMODE COMMAND ====================
+    # ==================== SLOWMODE & LOG ====================
 
     @commands.hybrid_command(name='slowmode')
     @commands.has_permissions(manage_channels=True)
     @commands.bot_has_permissions(manage_channels=True)
     async def slowmode(self, ctx: commands.Context, seconds: int = 0):
-        """Set slowmode for the channel (0 to disable)"""
+        """Set slowmode (0 to disable)"""
         if seconds < 0 or seconds > 21600:
             embed = discord.Embed(description="✖️ Slowmode must be 0-21600 seconds", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
@@ -733,12 +776,10 @@ class Moderation(commands.Cog):
             embed = discord.Embed(description=f"➕ Set slowmode to `{seconds}s`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
-    # ==================== SETLOG COMMAND ====================
-
     @commands.hybrid_command(name='modlog')
     @commands.has_permissions(administrator=True)
     async def modlog(self, ctx: commands.Context, channel: discord.TextChannel):
-        """Set the moderation log channel"""
+        """Set moderation log channel"""
         settings = await self.get_settings(ctx.guild.id)
         settings['log_channel'] = channel.id
         await self.save_settings(ctx.guild.id)
