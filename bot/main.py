@@ -168,6 +168,7 @@ class OffcialxBot(commands.Bot):
             'cogs.vpn_detection',       # VPN/Proxy detection for raid prevention
             'cogs.themes',              # Custom theme system
             'cogs.bot_admin',           # Bot admin commands (status, servers, join/leave logging)
+            'cogs.mirror',              # Cross-server message mirroring
         ]
 
         for cog in cogs:

@@ -33,6 +33,7 @@ class Help(commands.Cog):
             "› `/help raid` − Anti-raid protection\n"
             "› `/help spam` − Anti-spam system\n"
             "› `/help lockdown` − Lockdown controls\n"
+            "› `/help mirror` − Cross-server forwarding\n"
             "› `/help utility` − General commands\n"
             "› `/help owner` − Bot owner commands\n\n"
             "**Quick Start**\n"
@@ -284,6 +285,33 @@ class Help(commands.Cog):
         )
         return embed
 
+    def get_mirror_embed(self) -> discord.Embed:
+        """Mirror commands embed"""
+        embed = discord.Embed(color=EMBED_COLOR)
+        embed.description = (
+            "**Channel Mirror** (Server Owner Only)\n\n"
+            "Forward messages from one channel to another,\n"
+            "even across different servers!\n\n"
+            "**Setup Mirror**\n"
+            "› `mirror add #source <dest_id>` − Create mirror\n"
+            "› `mirror remove #source` − Remove all mirrors\n"
+            "› `mirror remove #source <dest_id>` − Remove specific\n\n"
+            "**Copy History**\n"
+            "› `mirror copy #source <dest_id> [amount]` − Copy messages\n"
+            "› Copies up to 100 messages at once\n\n"
+            "**View & Test**\n"
+            "› `mirror` − View all active mirrors\n"
+            "› `mirror test <channel_id>` − Test connection\n\n"
+            "**How to Get Channel ID:**\n"
+            "› Enable Developer Mode in Discord settings\n"
+            "› Right-click channel → Copy ID\n\n"
+            "**Example:**\n"
+            "› `!mirror add #announcements 123456789`\n"
+            "› Messages in #announcements will forward\n"
+            "› to channel 123456789 in another server"
+        )
+        return embed
+
     @commands.hybrid_command(name="help", aliases=["h", "cmds", "commands"])
     async def help_command(self, ctx: commands.Context, *, category: Optional[str] = None):
         """Show help menu"""
@@ -306,6 +334,8 @@ class Help(commands.Cog):
                 embed = self.get_utility_embed()
             elif cat in ["owner", "admin", "botadmin", "bot", "status", "servers"]:
                 embed = self.get_owner_embed()
+            elif cat in ["mirror", "forward", "copy", "sync", "crossserver"]:
+                embed = self.get_mirror_embed()
             else:
                 embed = self.get_main_embed()
         else:
