@@ -45,11 +45,18 @@ class RoleCommands(commands.Cog):
         Check role hierarchy for safety
         Returns (can_manage, error_message)
 
-        Only checks bot limitations - if you have permission, you can manage any role the bot can
+        Rules (in order):
+        1. Bot checks always apply (even for owner/developer)
+        2. Target check: Cannot manage roles for members with higher role than you
+        3. Role check: Cannot manage roles higher than your top role
         """
+        # ═══════════════════════════════════════════════════════════
+        # BOT CHECKS - Always apply, even for privileged users
+        # ═══════════════════════════════════════════════════════════
+
         # Cannot manage roles higher than bot's top role
         if role >= guild.me.top_role:
-            return False, f"Role is higher than my role (Bot: {guild.me.top_role.position}, Role: {role.position})"
+            return False, "Role is higher than my top role"
 
         # Cannot manage managed roles (bot/integration roles)
         if role.managed:
@@ -58,6 +65,24 @@ class RoleCommands(commands.Cog):
         # Cannot manage @everyone
         if role.is_default():
             return False, "Cannot manage @everyone role"
+
+        # ═══════════════════════════════════════════════════════════
+        # USER CHECKS - Privileged users (owner/developer) bypass these
+        # ═══════════════════════════════════════════════════════════
+
+        if self.is_privileged(guild, author.id):
+            return True, ""
+
+        # CHECK 1: Target's role hierarchy
+        # If target has higher or equal top role than you, you CANNOT manage their roles
+        if target.id != author.id:
+            if target.top_role >= author.top_role:
+                return False, "Target has equal or higher role than you"
+
+        # CHECK 2: Role position check
+        # Cannot manage roles that are equal or higher than your own top role
+        if role >= author.top_role:
+            return False, "Role is equal or higher than your top role"
 
         return True, ""
 
