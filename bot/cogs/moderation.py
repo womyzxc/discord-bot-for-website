@@ -234,16 +234,30 @@ class Moderation(commands.Cog):
             embed = discord.Embed(description=f"✖️ User not found: `{user_input}`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
-            embed = discord.Embed(description="✖️ Cannot ban someone with higher role", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-
+        # Can't ban yourself
         if member.id == ctx.author.id:
             embed = discord.Embed(description="✖️ Cannot ban yourself", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
+        # Can't ban the bot
         if member.id == self.bot.user.id:
             embed = discord.Embed(description="✖️ Cannot ban me", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Can't ban server owner
+        if member.id == ctx.guild.owner_id:
+            embed = discord.Embed(description="✖️ Cannot ban the server owner", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Check if bot's role is high enough
+        bot_member = ctx.guild.me
+        if member.top_role >= bot_member.top_role:
+            embed = discord.Embed(description="✖️ My role is not high enough to ban this user", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Check if command user can ban this person (skip for owner)
+        if ctx.author.id != ctx.guild.owner_id and member.top_role >= ctx.author.top_role:
+            embed = discord.Embed(description="✖️ You cannot ban someone with equal or higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
@@ -258,7 +272,7 @@ class Moderation(commands.Cog):
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'ban', ctx.author, member, reason)
         except discord.Forbidden:
-            embed = discord.Embed(description="✖️ Missing permissions to ban", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot ban this user (check bot permissions)", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(name='unban')
@@ -400,12 +414,30 @@ class Moderation(commands.Cog):
             embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
-            embed = discord.Embed(description="✖️ Cannot kick someone with higher role", color=EMBED_COLOR)
-            return await ctx.send(embed=embed)
-
+        # Can't kick yourself
         if member.id == ctx.author.id:
             embed = discord.Embed(description="✖️ Cannot kick yourself", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Can't kick the bot
+        if member.id == self.bot.user.id:
+            embed = discord.Embed(description="✖️ Cannot kick me", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Can't kick server owner
+        if member.id == ctx.guild.owner_id:
+            embed = discord.Embed(description="✖️ Cannot kick the server owner", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Check if bot's role is high enough
+        bot_member = ctx.guild.me
+        if member.top_role >= bot_member.top_role:
+            embed = discord.Embed(description="✖️ My role is not high enough to kick this user", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Check if command user can kick this person (skip for owner)
+        if ctx.author.id != ctx.guild.owner_id and member.top_role >= ctx.author.top_role:
+            embed = discord.Embed(description="✖️ You cannot kick someone with equal or higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
@@ -420,7 +452,7 @@ class Moderation(commands.Cog):
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'kick', ctx.author, member, reason)
         except discord.Forbidden:
-            embed = discord.Embed(description="✖️ Missing permissions to kick", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot kick this user (check bot permissions)", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     # ==================== MUTE/TIMEOUT COMMANDS ====================
@@ -453,8 +485,30 @@ class Moderation(commands.Cog):
             embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
-            embed = discord.Embed(description="✖️ Cannot mute someone with higher role", color=EMBED_COLOR)
+        # Can't mute yourself
+        if member.id == ctx.author.id:
+            embed = discord.Embed(description="✖️ Cannot mute yourself", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Can't mute the bot
+        if member.id == self.bot.user.id:
+            embed = discord.Embed(description="✖️ Cannot mute me", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Can't mute server owner
+        if member.id == ctx.guild.owner_id:
+            embed = discord.Embed(description="✖️ Cannot mute the server owner", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Check if bot's role is high enough
+        bot_member = ctx.guild.me
+        if member.top_role >= bot_member.top_role:
+            embed = discord.Embed(description="✖️ My role is not high enough to mute this user", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Check if command user can mute this person (skip for owner)
+        if ctx.author.id != ctx.guild.owner_id and member.top_role >= ctx.author.top_role:
+            embed = discord.Embed(description="✖️ You cannot mute someone with equal or higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         seconds, duration_display = self.parse_duration(duration_str)
@@ -471,7 +525,7 @@ class Moderation(commands.Cog):
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'mute', ctx.author, member, reason, duration_display)
         except discord.Forbidden:
-            embed = discord.Embed(description="✖️ Missing permissions to mute", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot mute this user (check bot permissions)", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(name='unmute', aliases=['untimeout'])
@@ -493,13 +547,19 @@ class Moderation(commands.Cog):
             embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
+        # Check if bot's role is high enough
+        bot_member = ctx.guild.me
+        if member.top_role >= bot_member.top_role:
+            embed = discord.Embed(description="✖️ My role is not high enough to unmute this user", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
         try:
             await member.timeout(None, reason=f"{reason or 'No reason'} | By: {ctx.author}")
             embed = discord.Embed(description=f"➕ Unmuted {member.mention}", color=EMBED_COLOR)
             await ctx.send(embed=embed)
             await self.log_mod_action(ctx.guild, 'unmute', ctx.author, member, reason)
         except discord.Forbidden:
-            embed = discord.Embed(description="✖️ Missing permissions to unmute", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Cannot unmute this user (check bot permissions)", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     # ==================== NICK COMMAND ====================
@@ -523,8 +583,15 @@ class Moderation(commands.Cog):
             embed = discord.Embed(description=f"✖️ Member not found: `{user_input}`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
-        if member.top_role >= ctx.author.top_role and ctx.author.id != ctx.guild.owner_id:
-            embed = discord.Embed(description="✖️ Cannot change nickname of someone with higher role", color=EMBED_COLOR)
+        # Check if bot's role is high enough
+        bot_member = ctx.guild.me
+        if member.top_role >= bot_member.top_role and member.id != self.bot.user.id:
+            embed = discord.Embed(description="✖️ My role is not high enough to change this user's nickname", color=EMBED_COLOR)
+            return await ctx.send(embed=embed)
+
+        # Check if command user can change this person's nick (skip for owner)
+        if ctx.author.id != ctx.guild.owner_id and member.top_role >= ctx.author.top_role and member.id != ctx.author.id:
+            embed = discord.Embed(description="✖️ You cannot change nickname of someone with equal or higher role", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         try:
