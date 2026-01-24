@@ -88,12 +88,6 @@ class AntiNuke(commands.Cog):
         self.server_settings_backup: Dict[int, Dict] = {}  # guild_id -> settings backup
 
 
-        # Nuclear Mode protection
-        self.audit_log_cache: Dict[int, List] = {}
-        self.permission_backup: Dict[int, Dict[int, int]] = {}  # guild_id -> {role_id: perms_value}
-        self.quarantined_users: Dict[int, Dict[int, List[int]]] = {}  # guild_id -> {user_id: [role_ids]}
-        self.nuclear_lockdown: Dict[int, bool] = {}
-
     async def cog_load(self):
         self._cleanup_task = asyncio.create_task(self._periodic_cleanup())
         self._webhook_scan_task = asyncio.create_task(self._continuous_webhook_scan())
@@ -1124,82 +1118,6 @@ class AntiNuke(commands.Cog):
         except:
             pass
 
-    # ==================== NUCLEAR MODE PROTECTION ====================
-
-    async def _instant_permission_lock(self, guild: discord.Guild):
-        """Remove dangerous permissions from ALL roles instantly"""
-        if self.nuclear_lockdown.get(guild.id):
-            return
-        
-        self.nuclear_lockdown[guild.id] = True
-        self.permission_backup[guild.id] = {}
-        
-        for role in guild.roles:
-            if role == guild.me.top_role or role.is_default() or role.managed:
-                continue
-            if role.permissions.manage_channels or role.permissions.administrator:
-                self.permission_backup[guild.id][role.id] = role.permissions.value
-                try:
-                    new_perms = discord.Permissions(role.permissions.value)
-                    new_perms.manage_channels = False
-                    new_perms.manage_roles = False
-                    new_perms.manage_guild = False
-                    new_perms.administrator = False
-                    new_perms.manage_webhooks = False
-                    await role.edit(permissions=new_perms, reason="[ANTINUKE] Nuclear lockdown")
-                except:
-                    pass
-        logger.critical(f"🔒 NUCLEAR LOCK: Removed perms from roles in {guild.name}")
-
-    async def _quarantine_admins(self, guild: discord.Guild, attacker_id: int = None):
-        """Strip roles from non-whitelisted users with dangerous perms"""
-        self.quarantined_users[guild.id] = {}
-        
-        for member in guild.members:
-            if member.bot or member.id == guild.owner_id or self.is_trusted(guild, member.id):
-                continue
-            if attacker_id and member.id == attacker_id:
-                continue
-            if member.guild_permissions.manage_channels or member.guild_permissions.administrator:
-                role_ids = [r.id for r in member.roles if not r.is_default()]
-                if role_ids:
-                    self.quarantined_users[guild.id][member.id] = role_ids
-                    try:
-                        await member.edit(roles=[], reason="[ANTINUKE] Quarantine")
-                    except:
-                        pass
-        logger.critical(f"🔒 QUARANTINE: {len(self.quarantined_users.get(guild.id, {}))} users in {guild.name}")
-
-    async def _restore_after_nuclear(self, guild: discord.Guild):
-        """Restore permissions after 20 seconds"""
-        await asyncio.sleep(20)
-        
-        # Restore role permissions
-        for role_id, perms_value in self.permission_backup.get(guild.id, {}).items():
-            role = guild.get_role(role_id)
-            if role:
-                try:
-                    await role.edit(permissions=discord.Permissions(perms_value), reason="[ANTINUKE] Lockdown ended")
-                    await asyncio.sleep(0.2)
-                except:
-                    pass
-        
-        # Restore quarantined users
-        for user_id, role_ids in self.quarantined_users.get(guild.id, {}).items():
-            member = guild.get_member(user_id)
-            if member:
-                roles = [guild.get_role(rid) for rid in role_ids if guild.get_role(rid)]
-                if roles:
-                    try:
-                        await member.edit(roles=roles, reason="[ANTINUKE] Quarantine ended")
-                        await asyncio.sleep(0.2)
-                    except:
-                        pass
-        
-        self.permission_backup.pop(guild.id, None)
-        self.quarantined_users.pop(guild.id, None)
-        self.nuclear_lockdown[guild.id] = False
-        logger.info(f"🔓 NUCLEAR LOCKDOWN ENDED: {guild.name}")
 
     # ==================== EVENT LISTENERS ====================
 
@@ -2054,18 +1972,8 @@ class AntiNuke(commands.Cog):
             self.nuke_in_progress[guild.id] = True
             self.nuke_attacker[guild.id] = deleter_id
 
-            # NUCLEAR RESPONSE
-            logger.critical(f"⚡ NUCLEAR MODE ACTIVATED: {guild.name}")
-
-            await asyncio.gather(
-                self._instant_permission_lock(guild),
-                self._quarantine_admins(guild, deleter_id),
-                self._instant_ban_user(guild, deleter_id, f"Deleted #{channel.name}"),
-                return_exceptions=True
-            )
-
-            # Start auto-restore after 20 seconds
-            asyncio.create_task(self._restore_after_nuclear(guild))
+            # Strip roles and ban attacker
+            await self._instant_ban_user(guild, deleter_id, f"Deleted #{channel.name}")
 
             # Log the attack
             await self.log_security_event(
@@ -2073,7 +1981,7 @@ class AntiNuke(commands.Cog):
                 "CHANNEL DELETE BLOCKED",
                 f"Channel `#{channel.name}` deleted - attacker INSTANTLY punished",
                 attacker=deleter,
-                action_taken="INSTANT: Roles stripped + Banned + Permissions removed",
+                action_taken="INSTANT: Roles stripped + Banned",
                 color=discord.Color.dark_red()
             )
 
