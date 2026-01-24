@@ -259,7 +259,7 @@ class BotAdmin(commands.Cog):
                 text=self.saved_activity_text,
                 status=status_type
             )
-            embed = discord.Embed(description=f"+ Changed status to `{status_type}`", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Changed status to `{status_type}`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Handle clear
@@ -267,7 +267,7 @@ class BotAdmin(commands.Cog):
             await self.bot.change_presence(activity=None)
             # Save to database
             await self.save_activity_settings(activity_type=None, text=None, status=self.saved_status)
-            embed = discord.Embed(description="+ Cleared bot activity", color=EMBED_COLOR)
+            embed = discord.Embed(description="➕ Cleared bot activity", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Handle activity types
@@ -299,7 +299,7 @@ class BotAdmin(commands.Cog):
         await self.bot.change_presence(activity=activity)
         # Save to database
         await self.save_activity_settings(activity_type=status_type, text=text, status=self.saved_status)
-        embed = discord.Embed(description=f"+ Set activity to `{status_type} {text}`", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set activity to `{status_type} {text}`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @commands.command(name="servers", aliases=["servercount", "guildcount", "guilds"])
@@ -390,7 +390,7 @@ class BotAdmin(commands.Cog):
         self.log_channel_id = channel.id
         # Save to database
         await self.save_log_channel(channel.id)
-        embed = discord.Embed(description=f"+ Set join/leave log to {channel.mention}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set join/leave log to {channel.mention}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @commands.command(name="leaveserver", aliases=["leave"])
@@ -411,7 +411,7 @@ class BotAdmin(commands.Cog):
 
         guild_name = guild.name
         await guild.leave()
-        embed = discord.Embed(description=f"+ Left server: `{guild_name}`", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Left server: `{guild_name}`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @commands.command(name="ownerinfo", aliases=["oi"])
