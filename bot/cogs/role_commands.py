@@ -95,7 +95,7 @@ class RoleCommands(commands.Cog):
     @commands.command(name='roletest')
     async def role_test(self, ctx: commands.Context):
         """Test if role commands are working"""
-        embed = discord.Embed(description="+ Role commands are working!", color=EMBED_COLOR)
+        embed = discord.Embed(description="➕ Role commands are working!", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     # Main role command - prefix version
@@ -110,12 +110,12 @@ class RoleCommands(commands.Cog):
 
         # Check if arguments provided
         if not member or not role_name:
-            embed = discord.Embed(description="✕ Usage: `!role @user RoleName`", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Usage: `!role @user RoleName`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Check user has manage_roles permission
         if not ctx.author.guild_permissions.manage_roles and not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ You need Manage Roles permission", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ You need Manage Roles permission", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Find the role
@@ -152,48 +152,48 @@ class RoleCommands(commands.Cog):
                     break
 
         if not role:
-            embed = discord.Embed(description=f"✕ Role `{role_name}` not found", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Role `{role_name}` not found", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Check bot permissions
         if not ctx.guild.me.guild_permissions.manage_roles:
-            embed = discord.Embed(description="✕ I need Manage Roles permission", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ I need Manage Roles permission", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Check role hierarchy
         can_manage, error = self.check_role_hierarchy(ctx.guild, ctx.author, member, role)
         if not can_manage:
-            embed = discord.Embed(description=f"✕ {error}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ {error}", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Toggle role
         try:
             if role in member.roles:
                 await member.remove_roles(role, reason=f"By {ctx.author}")
-                embed = discord.Embed(description=f"− Removed {role.mention} from {member.mention}", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"➖ Removed {role.mention} from {member.mention}", color=EMBED_COLOR)
             else:
                 await member.add_roles(role, reason=f"By {ctx.author}")
-                embed = discord.Embed(description=f"+ Added {role.mention} to {member.mention}", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"➕ Added {role.mention} to {member.mention}", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         except discord.Forbidden:
-            embed = discord.Embed(description="✕ I don't have permission to manage that role", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ I don't have permission to manage that role", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         except Exception as e:
-            embed = discord.Embed(description=f"✕ Error: {e}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Error: {e}", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @role_cmd.error
     async def role_cmd_error(self, ctx: commands.Context, error):
         """Handle role command errors"""
         if isinstance(error, commands.MemberNotFound):
-            embed = discord.Embed(description="✕ Member not found", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Member not found", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         elif isinstance(error, commands.MissingRequiredArgument):
-            embed = discord.Embed(description="✕ Usage: `!role @user RoleName`", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Usage: `!role @user RoleName`", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         else:
             logger.error(f"Role command error: {error}")
-            embed = discord.Embed(description=f"✕ Error: {error}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Error: {error}", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     # Slash command for role
@@ -207,29 +207,29 @@ class RoleCommands(commands.Cog):
 
         # Check bot permissions
         if not guild.me.guild_permissions.manage_roles:
-            embed = discord.Embed(description="✕ I need Manage Roles permission", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ I need Manage Roles permission", color=EMBED_COLOR)
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         # Check role hierarchy
         can_manage, error = self.check_role_hierarchy(guild, author, member, role)
         if not can_manage:
-            embed = discord.Embed(description=f"✕ {error}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ {error}", color=EMBED_COLOR)
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         # Toggle role
         try:
             if role in member.roles:
                 await member.remove_roles(role, reason=f"By {author}")
-                embed = discord.Embed(description=f"− Removed {role.mention} from {member.mention}", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"➖ Removed {role.mention} from {member.mention}", color=EMBED_COLOR)
             else:
                 await member.add_roles(role, reason=f"By {author}")
-                embed = discord.Embed(description=f"+ Added {role.mention} to {member.mention}", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"➕ Added {role.mention} to {member.mention}", color=EMBED_COLOR)
             await interaction.response.send_message(embed=embed)
         except discord.Forbidden:
-            embed = discord.Embed(description="✕ I don't have permission", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ I don't have permission", color=EMBED_COLOR)
             await interaction.response.send_message(embed=embed, ephemeral=True)
         except Exception as e:
-            embed = discord.Embed(description=f"✕ Error: {e}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Error: {e}", color=EMBED_COLOR)
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # Add role command
@@ -238,12 +238,12 @@ class RoleCommands(commands.Cog):
     async def add_role(self, ctx: commands.Context, member: discord.Member = None, *, role_name: str = None):
         """Add a role to a member (with hierarchy check)"""
         if not member or not role_name:
-            embed = discord.Embed(description="✕ Usage: `!addrole @user RoleName`", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Usage: `!addrole @user RoleName`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Check permissions
         if not ctx.author.guild_permissions.manage_roles and not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ You need Manage Roles permission", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ You need Manage Roles permission", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Find role
@@ -259,25 +259,25 @@ class RoleCommands(commands.Cog):
                     break
 
         if not role:
-            embed = discord.Embed(description=f"✕ Role `{role_name}` not found", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Role `{role_name}` not found", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Check hierarchy
         can_manage, error = self.check_role_hierarchy(ctx.guild, ctx.author, member, role)
         if not can_manage:
-            embed = discord.Embed(description=f"✕ {error}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ {error}", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if role in member.roles:
-            embed = discord.Embed(description=f"✕ {member.mention} already has {role.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ {member.mention} already has {role.mention}", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         try:
             await member.add_roles(role, reason=f"By {ctx.author}")
-            embed = discord.Embed(description=f"+ Added {role.mention} to {member.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Added {role.mention} to {member.mention}", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         except:
-            embed = discord.Embed(description="✕ Failed to add role", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Failed to add role", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     # Remove role command
@@ -286,12 +286,12 @@ class RoleCommands(commands.Cog):
     async def remove_role(self, ctx: commands.Context, member: discord.Member = None, *, role_name: str = None):
         """Remove a role from a member (with hierarchy check)"""
         if not member or not role_name:
-            embed = discord.Embed(description="✕ Usage: `!removerole @user RoleName`", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Usage: `!removerole @user RoleName`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Check permissions
         if not ctx.author.guild_permissions.manage_roles and not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ You need Manage Roles permission", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ You need Manage Roles permission", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Find role
@@ -307,25 +307,25 @@ class RoleCommands(commands.Cog):
                     break
 
         if not role:
-            embed = discord.Embed(description=f"✕ Role `{role_name}` not found", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Role `{role_name}` not found", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Check hierarchy
         can_manage, error = self.check_role_hierarchy(ctx.guild, ctx.author, member, role)
         if not can_manage:
-            embed = discord.Embed(description=f"✕ {error}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ {error}", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if role not in member.roles:
-            embed = discord.Embed(description=f"✕ {member.mention} doesn't have {role.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ {member.mention} doesn't have {role.mention}", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         try:
             await member.remove_roles(role, reason=f"By {ctx.author}")
-            embed = discord.Embed(description=f"− Removed {role.mention} from {member.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➖ Removed {role.mention} from {member.mention}", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         except:
-            embed = discord.Embed(description="✕ Failed to remove role", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Failed to remove role", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
 

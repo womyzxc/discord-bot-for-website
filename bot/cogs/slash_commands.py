@@ -62,7 +62,7 @@ class SlashCommands(commands.Cog):
     async def owner_check(self, ctx: commands.Context) -> bool:
         """Check ownership and send error if not owner"""
         if not self.is_owner(ctx):
-            embed = discord.Embed(description="✕ Only server owner can use this command", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Only server owner can use this command", color=EMBED_COLOR)
             await ctx.send(embed=embed)
             return False
         return True

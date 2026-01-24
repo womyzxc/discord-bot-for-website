@@ -317,7 +317,7 @@ class Help(commands.Cog):
         )
         return embed
 
-    @commands.hybrid_command(name="help", aliases=["h", "commands"])
+    @commands.hybrid_command(name="help", aliases=["h"])
     @app_commands.describe(category="Command category to view")
     async def help_command(self, ctx: commands.Context, *, category: Optional[str] = None):
         """Show help menu with all commands"""
@@ -360,7 +360,7 @@ class Help(commands.Cog):
 
         await ctx.send(embed=embed)
 
-    @commands.hybrid_command(name="commands", aliases=["cmds"])
+    @commands.hybrid_command(name="cmdlist", aliases=["cmds", "commands"])
     async def commands_list(self, ctx: commands.Context):
         """Quick command reference"""
         embed = discord.Embed(color=EMBED_COLOR)

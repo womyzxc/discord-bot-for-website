@@ -135,7 +135,7 @@ class Backup(commands.Cog):
     async def owner_check(self, ctx) -> bool:
         """Check ownership and send error if not owner"""
         if not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can use this command", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Only server owner can use this command", color=EMBED_COLOR)
             await ctx.send(embed=embed)
             return False
         return True
@@ -666,7 +666,7 @@ class Backup(commands.Cog):
             await msg.edit(embed=embed)
         except Exception as e:
             logger.error(f"Backup creation failed: {e}")
-            embed = discord.Embed(description=f"✕ Backup failed: {str(e)[:100]}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Backup failed: {str(e)[:100]}", color=EMBED_COLOR)
             await msg.edit(embed=embed)
 
     @backup.command(name='info')
@@ -681,7 +681,7 @@ class Backup(commands.Cog):
         backups = self.backups.get(ctx.guild.id, [])
 
         if not backups:
-            embed = discord.Embed(description="✕ No backups found", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ No backups found", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if version is None:
@@ -689,7 +689,7 @@ class Backup(commands.Cog):
         else:
             backup = next((b for b in backups if b.version == version), None)
             if not backup:
-                embed = discord.Embed(description=f"✕ Backup v{version} not found", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"✖️ Backup v{version} not found", color=EMBED_COLOR)
                 return await ctx.send(embed=embed)
 
         ch_count = len(backup.text_channels) + len(backup.voice_channels)
@@ -735,7 +735,7 @@ class Backup(commands.Cog):
         backups = self.backups.get(ctx.guild.id, [])
 
         if not backups:
-            embed = discord.Embed(description="✕ No backups found", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ No backups found", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if version is None:
@@ -743,7 +743,7 @@ class Backup(commands.Cog):
         else:
             backup = next((b for b in backups if b.version == version), None)
             if not backup:
-                embed = discord.Embed(description=f"✕ Backup v{version} not found", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"✖️ Backup v{version} not found", color=EMBED_COLOR)
                 return await ctx.send(embed=embed)
 
         ch_count = len(backup.text_channels) + len(backup.voice_channels)
@@ -770,7 +770,7 @@ class Backup(commands.Cog):
             reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check)
 
             if str(reaction.emoji) == "❌":
-                embed = discord.Embed(description="− Restore cancelled", color=EMBED_COLOR)
+                embed = discord.Embed(description="➖ Restore cancelled", color=EMBED_COLOR)
                 await msg.edit(embed=embed)
                 try:
                     await msg.clear_reactions()
@@ -807,7 +807,7 @@ class Backup(commands.Cog):
             await msg.edit(embed=embed)
 
         except asyncio.TimeoutError:
-            embed = discord.Embed(description="✕ Restore timed out", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Restore timed out", color=EMBED_COLOR)
             await msg.edit(embed=embed)
             try:
                 await msg.clear_reactions()
@@ -826,7 +826,7 @@ class Backup(commands.Cog):
         backups = self.backups.get(ctx.guild.id, [])
 
         if not backups:
-            embed = discord.Embed(description="✕ No backups found", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ No backups found", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         backup_list = []
@@ -854,13 +854,13 @@ class Backup(commands.Cog):
 
         backup = next((b for b in backups if b.version == version), None)
         if not backup:
-            embed = discord.Embed(description=f"✕ Backup v{version} not found", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Backup v{version} not found", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         backups.remove(backup)
         await self.delete_backup_from_db(ctx.guild.id, version)
 
-        embed = discord.Embed(description=f"+ Deleted backup v{version}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Deleted backup v{version}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @backup.command(name='clear')
@@ -873,7 +873,7 @@ class Backup(commands.Cog):
 
         # Extra check - only server owner can clear all backups
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only server owner can clear all backups", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Only server owner can clear all backups", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         count = len(self.backups.get(ctx.guild.id, []))
@@ -883,7 +883,7 @@ class Backup(commands.Cog):
             await self.delete_backup_from_db(ctx.guild.id, backup.version)
 
         self.backups[ctx.guild.id] = []
-        embed = discord.Embed(description=f"+ Cleared `{count}` backups", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Cleared `{count}` backups", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @backup.command(name='auto')
@@ -903,7 +903,7 @@ class Backup(commands.Cog):
         await self.save_settings(ctx.guild.id)
 
         status = "enabled" if enabled else "disabled"
-        embed = discord.Embed(description=f"+ Auto backups `{status}`", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Auto backups `{status}`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @backup.command(name='setlog')
@@ -918,7 +918,7 @@ class Backup(commands.Cog):
         settings['log_channel'] = channel.id
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description=f"+ Set backup log to {channel.mention}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set backup log to {channel.mention}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @backup.command(name='settings')

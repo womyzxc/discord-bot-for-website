@@ -253,7 +253,7 @@ class Settings(commands.Cog):
     async def reset(self, ctx, module: str = None):
         """Reset settings to defaults"""
         if ctx.author.id != ctx.guild.owner_id:
-            embed = discord.Embed(description="✕ Only the server owner can reset settings", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Only the server owner can reset settings", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         cog_map = {
@@ -268,7 +268,7 @@ class Settings(commands.Cog):
 
         if module:
             if module.lower() not in cog_map:
-                embed = discord.Embed(description=f"✕ Unknown module. Choose from: `{', '.join(cog_map.keys())}`", color=EMBED_COLOR)
+                embed = discord.Embed(description=f"✖️ Unknown module. Choose from: `{', '.join(cog_map.keys())}`", color=EMBED_COLOR)
                 return await ctx.send(embed=embed)
 
             cog = self.bot.get_cog(cog_map[module.lower()])
@@ -276,7 +276,7 @@ class Settings(commands.Cog):
                 if ctx.guild.id in cog.guild_settings:
                     del cog.guild_settings[ctx.guild.id]
 
-            embed = discord.Embed(description=f"+ Reset `{module}` settings to defaults", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Reset `{module}` settings to defaults", color=EMBED_COLOR)
             await ctx.send(embed=embed)
         else:
             # Reset all
@@ -286,7 +286,7 @@ class Settings(commands.Cog):
                     if ctx.guild.id in cog.guild_settings:
                         del cog.guild_settings[ctx.guild.id]
 
-            embed = discord.Embed(description="+ Reset all settings to defaults", color=EMBED_COLOR)
+            embed = discord.Embed(description="➕ Reset all settings to defaults", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
 async def setup(bot):

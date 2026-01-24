@@ -93,7 +93,7 @@ class AntiSelfbot(commands.Cog):
     async def owner_check(self, ctx) -> bool:
         """Check ownership and send error if not owner"""
         if not self.is_privileged(ctx.guild, ctx.author.id):
-            embed = discord.Embed(description="✕ Only server owner can use this command", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Only server owner can use this command", color=EMBED_COLOR)
             await ctx.send(embed=embed)
             return False
         return True
@@ -519,7 +519,7 @@ class AntiSelfbot(commands.Cog):
         settings = await self.get_settings(ctx.guild.id)
         settings['enabled'] = True
         await self.save_settings(ctx.guild.id)
-        embed = discord.Embed(description="+ Enabled anti-selfbot protection", color=EMBED_COLOR)
+        embed = discord.Embed(description="➕ Enabled anti-selfbot protection", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antiselfbot.command(name='disable')
@@ -532,7 +532,7 @@ class AntiSelfbot(commands.Cog):
         settings = await self.get_settings(ctx.guild.id)
         settings['enabled'] = False
         await self.save_settings(ctx.guild.id)
-        embed = discord.Embed(description="− Disabled anti-selfbot protection", color=EMBED_COLOR)
+        embed = discord.Embed(description="➖ Disabled anti-selfbot protection", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antiselfbot.command(name='action')
@@ -544,13 +544,13 @@ class AntiSelfbot(commands.Cog):
 
         valid = ['alert', 'mute', 'kick', 'ban']
         if action.lower() not in valid:
-            embed = discord.Embed(description=f"✕ Invalid action. Use: `{', '.join(valid)}`", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Invalid action. Use: `{', '.join(valid)}`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
         settings['action'] = action.lower()
         await self.save_settings(ctx.guild.id)
-        embed = discord.Embed(description=f"+ Set selfbot action to `{action.lower()}`", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set selfbot action to `{action.lower()}`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antiselfbot.command(name='check')
@@ -584,7 +584,7 @@ class AntiSelfbot(commands.Cog):
             return
 
         self.trackers[ctx.guild.id][member.id] = SelfbotTracker()
-        embed = discord.Embed(description=f"+ Cleared selfbot tracking for {member.mention}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Cleared selfbot tracking for {member.mention}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antiselfbot.command(name='setlog')
@@ -597,7 +597,7 @@ class AntiSelfbot(commands.Cog):
         settings = await self.get_settings(ctx.guild.id)
         settings['log_channel'] = channel.id
         await self.save_settings(ctx.guild.id)
-        embed = discord.Embed(description=f"+ Set selfbot log channel to {channel.mention}", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set selfbot log channel to {channel.mention}", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @antiselfbot.command(name='threshold')
@@ -608,13 +608,13 @@ class AntiSelfbot(commands.Cog):
             return
 
         if value < 0 or value > 100:
-            embed = discord.Embed(description="✕ Threshold must be 0-100", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Threshold must be 0-100", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
         settings['suspicion_threshold'] = value
         await self.save_settings(ctx.guild.id)
-        embed = discord.Embed(description=f"+ Set suspicion threshold to `{value}`", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set suspicion threshold to `{value}`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
 

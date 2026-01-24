@@ -240,7 +240,7 @@ This is a preview of how your embeds will look with this theme.
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author.id:
-            embed = discord.Embed(description="✕ Only the command author can use this menu", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Only the command author can use this menu", color=EMBED_COLOR)
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return False
         return True
@@ -362,7 +362,7 @@ class CustomColorModal(discord.ui.Modal, title="Custom Theme Colors"):
             await interaction.response.send_message(embed=embed)
 
         except ValueError as e:
-            embed = discord.Embed(description=f"✕ Invalid hex color format. Use format like `#9B59B6`", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Invalid hex color format. Use format like `#9B59B6`", color=EMBED_COLOR)
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -490,7 +490,7 @@ class Themes(commands.Cog):
                         break
                 else:
                     available = ", ".join([f"`{t['name']}`" for t in PRESET_THEMES.values()])
-                    embed = discord.Embed(description=f"✕ Unknown theme `{theme_name}`\n\nAvailable: {available}", color=EMBED_COLOR)
+                    embed = discord.Embed(description=f"✖️ Unknown theme `{theme_name}`\n\nAvailable: {available}", color=EMBED_COLOR)
                     return await ctx.send(embed=embed)
 
             self.set_guild_theme(ctx.guild.id, theme_id)
@@ -526,7 +526,7 @@ Use a color picker like [coolors.co](https://coolors.co) to find colors.
 
         async def open_modal(interaction: discord.Interaction):
             if interaction.user.id != ctx.author.id:
-                embed = discord.Embed(description="✕ Only the command author can use this", color=EMBED_COLOR)
+                embed = discord.Embed(description="✖️ Only the command author can use this", color=EMBED_COLOR)
                 return await interaction.response.send_message(embed=embed, ephemeral=True)
             await interaction.response.send_modal(CustomColorModal())
 
@@ -542,7 +542,7 @@ Use a color picker like [coolors.co](https://coolors.co) to find colors.
         """Reset to default theme"""
         self.set_guild_theme(ctx.guild.id, "default")
 
-        embed = discord.Embed(description="+ Theme reset to **Default**", color=PRESET_THEMES["default"]["primary"])
+        embed = discord.Embed(description="➕ Theme reset to **Default**", color=PRESET_THEMES["default"]["primary"])
         await ctx.send(embed=embed)
 
     @theme_group.command(name='preview')
@@ -611,7 +611,7 @@ Use a color picker like [coolors.co](https://coolors.co) to find colors.
     async def slash_theme_reset(self, interaction: discord.Interaction):
         self.set_guild_theme(interaction.guild.id, "default")
 
-        embed = discord.Embed(description="+ Theme reset to **Default**", color=PRESET_THEMES["default"]["primary"])
+        embed = discord.Embed(description="➕ Theme reset to **Default**", color=PRESET_THEMES["default"]["primary"])
         await interaction.response.send_message(embed=embed)
 
     @theme_slash.command(name='preview', description='Preview current theme colors')

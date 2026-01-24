@@ -634,11 +634,11 @@ class ThreatIntelligence(commands.Cog):
         valid_types = ['nuke', 'raid', 'spam', 'selfbot', 'scam', 'phishing', 'other']
 
         if threat_type.lower() not in valid_types:
-            embed = discord.Embed(description=f"✕ Invalid type. Choose from: `{', '.join(valid_types)}`", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Invalid type. Choose from: `{', '.join(valid_types)}`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         await self.report_threat(ctx.guild, member.id, threat_type.lower(), evidence)
-        embed = discord.Embed(description=f"+ Reported {member.mention} for `{threat_type}`", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Reported {member.mention} for `{threat_type}`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @threatintel.command(name='enable')
@@ -647,7 +647,7 @@ class ThreatIntelligence(commands.Cog):
         """Enable threat intelligence"""
         settings = await self.get_settings(ctx.guild.id)
         settings['enabled'] = True
-        embed = discord.Embed(description="+ Enabled threat intelligence", color=EMBED_COLOR)
+        embed = discord.Embed(description="➕ Enabled threat intelligence", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @threatintel.command(name='disable')
@@ -656,7 +656,7 @@ class ThreatIntelligence(commands.Cog):
         """Disable threat intelligence"""
         settings = await self.get_settings(ctx.guild.id)
         settings['enabled'] = False
-        embed = discord.Embed(description="− Disabled threat intelligence", color=EMBED_COLOR)
+        embed = discord.Embed(description="➖ Disabled threat intelligence", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @threatintel.command(name='alert')
@@ -667,9 +667,9 @@ class ThreatIntelligence(commands.Cog):
         settings['alert_channel'] = channel.id if channel else None
 
         if channel:
-            embed = discord.Embed(description=f"+ Set alert channel to {channel.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Set alert channel to {channel.mention}", color=EMBED_COLOR)
         else:
-            embed = discord.Embed(description="+ Alert channel cleared", color=EMBED_COLOR)
+            embed = discord.Embed(description="➕ Alert channel cleared", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
 async def setup(bot):

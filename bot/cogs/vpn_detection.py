@@ -509,7 +509,7 @@ class VPNDetection(commands.Cog):
         """Enable VPN detection"""
         settings = await self.get_guild_settings(ctx.guild.id)
         settings['enabled'] = True
-        embed = discord.Embed(description="+ Enabled VPN detection", color=self.EMBED_COLOR)
+        embed = discord.Embed(description="➕ Enabled VPN detection", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @vpndetect.command(name='disable')
@@ -518,7 +518,7 @@ class VPNDetection(commands.Cog):
         """Disable VPN detection"""
         settings = await self.get_guild_settings(ctx.guild.id)
         settings['enabled'] = False
-        embed = discord.Embed(description="− Disabled VPN detection", color=self.EMBED_COLOR)
+        embed = discord.Embed(description="➖ Disabled VPN detection", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @vpndetect.command(name='action')
@@ -527,12 +527,12 @@ class VPNDetection(commands.Cog):
         """Set the action to take on VPN users"""
         valid_actions = ['kick', 'ban', 'alert', 'quarantine']
         if action.lower() not in valid_actions:
-            embed = discord.Embed(description=f"✕ Invalid action. Use: `{', '.join(valid_actions)}`", color=self.EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Invalid action. Use: `{', '.join(valid_actions)}`", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_guild_settings(ctx.guild.id)
         settings['action'] = action.lower()
-        embed = discord.Embed(description=f"+ Set VPN action to `{action.lower()}`", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set VPN action to `{action.lower()}`", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @vpndetect.command(name='block')
@@ -548,11 +548,11 @@ class VPNDetection(commands.Cog):
         }
 
         if block_type.lower() not in types:
-            embed = discord.Embed(description="✕ Use: `vpn`, `proxy`, `datacenter`, `tor`", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Use: `vpn`, `proxy`, `datacenter`, `tor`", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if value.lower() not in ['on', 'off', 'true', 'false']:
-            embed = discord.Embed(description="✕ Value must be `on` or `off`", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Value must be `on` or `off`", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_guild_settings(ctx.guild.id)
@@ -560,7 +560,7 @@ class VPNDetection(commands.Cog):
         settings[types[block_type.lower()]] = new_value
 
         status = "enabled" if new_value else "disabled"
-        embed = discord.Embed(description=f"+ {block_type} blocking `{status}`", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ {block_type} blocking `{status}`", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @vpndetect.command(name='riskscore')
@@ -568,12 +568,12 @@ class VPNDetection(commands.Cog):
     async def vpn_riskscore(self, ctx: commands.Context, score: int):
         """Set minimum risk score to trigger action"""
         if score < 0 or score > 100:
-            embed = discord.Embed(description="✕ Score must be 0-100", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Score must be 0-100", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_guild_settings(ctx.guild.id)
         settings['min_risk_score'] = score
-        embed = discord.Embed(description=f"+ Set min risk score to `{score}`", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set min risk score to `{score}`", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @vpndetect.command(name='raidonly')
@@ -581,7 +581,7 @@ class VPNDetection(commands.Cog):
     async def vpn_raidonly(self, ctx: commands.Context, value: str):
         """Only check during raid mode"""
         if value.lower() not in ['on', 'off', 'true', 'false']:
-            embed = discord.Embed(description="✕ Value must be `on` or `off`", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Value must be `on` or `off`", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_guild_settings(ctx.guild.id)
@@ -589,7 +589,7 @@ class VPNDetection(commands.Cog):
         settings['raid_mode_only'] = new_value
 
         status = "enabled" if new_value else "disabled"
-        embed = discord.Embed(description=f"+ Raid-only mode `{status}`", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Raid-only mode `{status}`", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @vpndetect.command(name='check')
@@ -598,7 +598,7 @@ class VPNDetection(commands.Cog):
         """Manually check an IP address"""
         parts = ip.split('.')
         if len(parts) != 4:
-            embed = discord.Embed(description="✕ Invalid IP format", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Invalid IP format", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         embed = discord.Embed(description=f"Checking `{ip}`...", color=self.EMBED_COLOR)
@@ -636,7 +636,7 @@ class VPNDetection(commands.Cog):
     async def vpn_whitelist(self, ctx: commands.Context, member: discord.Member):
         """Whitelist a user from VPN checks"""
         self.whitelisted_users[ctx.guild.id].add(member.id)
-        embed = discord.Embed(description=f"+ Whitelisted {member.mention} from VPN detection", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Whitelisted {member.mention} from VPN detection", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @vpndetect.command(name='unwhitelist')
@@ -644,7 +644,7 @@ class VPNDetection(commands.Cog):
     async def vpn_unwhitelist(self, ctx: commands.Context, member: discord.Member):
         """Remove a user from the whitelist"""
         self.whitelisted_users[ctx.guild.id].discard(member.id)
-        embed = discord.Embed(description=f"− Removed {member.mention} from VPN whitelist", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➖ Removed {member.mention} from VPN whitelist", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @vpndetect.command(name='raidmode')
@@ -659,12 +659,12 @@ class VPNDetection(commands.Cog):
 
         if value.lower() in ['on', 'enable', 'true']:
             self.enable_raid_mode(ctx.guild.id)
-            embed = discord.Embed(description="+ Raid mode enabled - Aggressive checking active", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="➕ Raid mode enabled - Aggressive checking active", color=self.EMBED_COLOR)
         elif value.lower() in ['off', 'disable', 'false']:
             self.disable_raid_mode(ctx.guild.id)
-            embed = discord.Embed(description="− Raid mode disabled", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="➖ Raid mode disabled", color=self.EMBED_COLOR)
         else:
-            embed = discord.Embed(description="✕ Use `on` or `off`", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Use `on` or `off`", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     # ==================== BACKGROUND TASKS ====================

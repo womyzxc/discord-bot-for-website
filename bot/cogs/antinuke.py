@@ -2260,14 +2260,14 @@ class AntiNuke(commands.Cog):
     async def set_log_channel(self, ctx: commands.Context, channel: discord.TextChannel):
         """Set the security log channel for anti-nuke events"""
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can set log channel", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only owner can set log channel", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
         settings['log_channel_id'] = channel.id
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description=f"+ Set log channel to {channel.mention}", color=0x2b2d31)
+        embed = discord.Embed(description=f"➕ Set log channel to {channel.mention}", color=0x2b2d31)
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="antinuke_enable", aliases=["antinuke-enable", "an-on"], description="Enable anti-nuke protection")
@@ -2277,12 +2277,12 @@ class AntiNuke(commands.Cog):
     async def enable_antinuke(self, ctx: commands.Context):
         """Enable anti-nuke protection"""
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can enable anti-nuke", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only owner can enable anti-nuke", color=0x2b2d31)
             return await ctx.send(embed=embed)
         settings = await self.get_settings(ctx.guild.id)
         settings['enabled'] = True
         await self.save_settings(ctx.guild.id)
-        embed = discord.Embed(description="+ Enabled anti-nuke protection", color=0x2b2d31)
+        embed = discord.Embed(description="➕ Enabled anti-nuke protection", color=0x2b2d31)
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="antinuke_disable", aliases=["antinuke-disable", "an-off"], description="Disable anti-nuke protection")
@@ -2292,12 +2292,12 @@ class AntiNuke(commands.Cog):
     async def disable_antinuke(self, ctx: commands.Context):
         """Disable anti-nuke protection (DANGEROUS)"""
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can disable anti-nuke", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only owner can disable anti-nuke", color=0x2b2d31)
             return await ctx.send(embed=embed)
         settings = await self.get_settings(ctx.guild.id)
         settings['enabled'] = False
         await self.save_settings(ctx.guild.id)
-        embed = discord.Embed(description="− Disabled anti-nuke protection", color=0x2b2d31)
+        embed = discord.Embed(description="➖ Disabled anti-nuke protection", color=0x2b2d31)
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="punishment", aliases=["anpunish", "an-punishment"], description="Set punishment type (ban/kick)")
@@ -2309,7 +2309,7 @@ class AntiNuke(commands.Cog):
         Usage: !punishment ban OR !punishment kick
         """
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can change punishment type", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only owner can change punishment type", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
@@ -2328,13 +2328,13 @@ class AntiNuke(commands.Cog):
 
         punishment_type = punishment_type.lower()
         if punishment_type not in ['ban', 'kick']:
-            embed = discord.Embed(description="✕ Invalid punishment type. Use `ban` or `kick`", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Invalid punishment type. Use `ban` or `kick`", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         settings['punishment'] = punishment_type
         await self.save_settings(ctx.guild.id)
 
-        embed = discord.Embed(description=f"+ Anti-nuke punishment set to `{punishment_type}`", color=0x2b2d31)
+        embed = discord.Embed(description=f"➕ Anti-nuke punishment set to `{punishment_type}`", color=0x2b2d31)
         await ctx.send(embed=embed)
 
     # ==================== WHITELIST COMMANDS MOVED ====================
@@ -2487,7 +2487,7 @@ class AntiNuke(commands.Cog):
     async def manual_lockdown(self, ctx: commands.Context, seconds: int = 60):
         """Manually lock down the server - trusted users/roles can still send messages"""
         if self.lockdown_active.get(ctx.guild.id):
-            embed = discord.Embed(description="✕ Server already locked", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Server already locked", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         embed = discord.Embed(description=f"⟳ Locking server for {seconds}s...", color=0x2b2d31)
@@ -2525,7 +2525,7 @@ class AntiNuke(commands.Cog):
                 logger.warning(f"Failed to lock channel {ch.name}: {e}")
 
         bypass_msg = f" (trusted users/roles can still send)" if bypass_count > 0 else ""
-        embed = discord.Embed(description=f"+ Locked {locked_count} channels for {seconds}s{bypass_msg}", color=0x2b2d31)
+        embed = discord.Embed(description=f"➕ Locked {locked_count} channels for {seconds}s{bypass_msg}", color=0x2b2d31)
         await msg.edit(embed=embed)
 
         await asyncio.sleep(seconds)
@@ -2552,7 +2552,7 @@ class AntiNuke(commands.Cog):
         self.lockdown_permission_backup[ctx.guild.id] = {}
         self.lockdown_active[ctx.guild.id] = False
 
-        embed = discord.Embed(description=f"+ Unlocked {restored_count} channels (permissions restored)", color=0x2b2d31)
+        embed = discord.Embed(description=f"➕ Unlocked {restored_count} channels (permissions restored)", color=0x2b2d31)
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="serverunlock", description="End server lockdown immediately")
@@ -2594,9 +2594,9 @@ class AntiNuke(commands.Cog):
         self.lockdown_active[ctx.guild.id] = False
 
         if has_backup:
-            embed = discord.Embed(description=f"+ Unlocked {restored_count} channels (permissions restored)", color=0x2b2d31)
+            embed = discord.Embed(description=f"➕ Unlocked {restored_count} channels (permissions restored)", color=0x2b2d31)
         else:
-            embed = discord.Embed(description=f"+ Unlocked {restored_count} channels", color=0x2b2d31)
+            embed = discord.Embed(description=f"➕ Unlocked {restored_count} channels", color=0x2b2d31)
         await msg.edit(embed=embed)
 
     @commands.hybrid_command(name="nukewebhooks", description="Delete ALL webhooks from the server")
@@ -2606,7 +2606,7 @@ class AntiNuke(commands.Cog):
     async def nuke_all_webhooks(self, ctx: commands.Context):
         """Delete ALL webhooks from the server (emergency)"""
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can use this", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only owner can use this", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         embed = discord.Embed(description="⟳ Deleting all webhooks...", color=0x2b2d31)
@@ -2626,7 +2626,7 @@ class AntiNuke(commands.Cog):
                 pass
 
         self.known_webhooks[ctx.guild.id] = defaultdict(set)
-        embed = discord.Embed(description=f"+ Deleted {count} webhooks", color=0x2b2d31)
+        embed = discord.Embed(description=f"➕ Deleted {count} webhooks", color=0x2b2d31)
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="attackstats", description="View attack statistics")
@@ -2690,12 +2690,12 @@ class AntiNuke(commands.Cog):
     async def test_antinuke(self, ctx: commands.Context):
         """Test anti-nuke logging (safe test)"""
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can test", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only owner can test", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
         if not settings.get('log_channel_id'):
-            embed = discord.Embed(description="✕ Set a log channel first with `/setlog #channel`", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Set a log channel first with `/setlog #channel`", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         embed = discord.Embed(description="⟳ Testing anti-nuke logging...", color=0x2b2d31)
@@ -2711,7 +2711,7 @@ class AntiNuke(commands.Cog):
         )
 
         await asyncio.sleep(1)
-        embed = discord.Embed(description="+ Test complete, check log channel", color=0x2b2d31)
+        embed = discord.Embed(description="➕ Test complete, check log channel", color=0x2b2d31)
         await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="restore", description="View deleted channels that can be restored")
@@ -2721,7 +2721,7 @@ class AntiNuke(commands.Cog):
     async def restore_list(self, ctx: commands.Context):
         """View recently deleted channels that can be restored"""
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can view restore list", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only owner can view restore list", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         if not hasattr(self, 'deleted_channels'):
@@ -2758,7 +2758,7 @@ class AntiNuke(commands.Cog):
     async def restore_channel(self, ctx: commands.Context, number: int):
         """Restore a deleted channel by number from /restore list"""
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can restore channels", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only owner can restore channels", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         if not hasattr(self, 'deleted_channels'):
@@ -2766,14 +2766,14 @@ class AntiNuke(commands.Cog):
 
         deleted = self.deleted_channels.get(ctx.guild.id, [])
         if not deleted:
-            embed = discord.Embed(description="✕ No deleted channels to restore", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ No deleted channels to restore", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         reversed_list = list(reversed(deleted))
         index = number - 1
 
         if index < 0 or index >= len(reversed_list):
-            embed = discord.Embed(description=f"✕ Invalid number, use 1-{len(reversed_list)}", color=0x2b2d31)
+            embed = discord.Embed(description=f"✖️ Invalid number, use 1-{len(reversed_list)}", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         ch_info = reversed_list[index]
@@ -2812,14 +2812,14 @@ class AntiNuke(commands.Cog):
             original_index = len(deleted) - 1 - index
             self.deleted_channels[ctx.guild.id].pop(original_index)
 
-            embed = discord.Embed(description=f"+ Restored #{ch_info['name']} → {new_channel.mention}", color=0x2b2d31)
+            embed = discord.Embed(description=f"➕ Restored #{ch_info['name']} → {new_channel.mention}", color=0x2b2d31)
             await ctx.send(embed=embed)
 
         except discord.Forbidden:
-            embed = discord.Embed(description="✕ Missing permissions to create channels", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Missing permissions to create channels", color=0x2b2d31)
             await ctx.send(embed=embed)
         except Exception as e:
-            embed = discord.Embed(description=f"✕ Failed to restore: {type(e).__name__}", color=0x2b2d31)
+            embed = discord.Embed(description=f"✖️ Failed to restore: {type(e).__name__}", color=0x2b2d31)
             await ctx.send(embed=embed)
 
     @commands.hybrid_command(name="restore_clear", description="Clear the deleted channels restore list")
@@ -2829,7 +2829,7 @@ class AntiNuke(commands.Cog):
     async def restore_clear(self, ctx: commands.Context):
         """Clear the deleted channels restore list"""
         if ctx.author.id != ctx.guild.owner_id and ctx.author.id not in self.owner_ids:
-            embed = discord.Embed(description="✕ Only owner can clear restore list", color=0x2b2d31)
+            embed = discord.Embed(description="✖️ Only owner can clear restore list", color=0x2b2d31)
             return await ctx.send(embed=embed)
 
         if not hasattr(self, 'deleted_channels'):
@@ -2837,7 +2837,7 @@ class AntiNuke(commands.Cog):
 
         count = len(self.deleted_channels.get(ctx.guild.id, []))
         self.deleted_channels[ctx.guild.id] = []
-        embed = discord.Embed(description=f"+ Cleared {count} channels from restore list", color=0x2b2d31)
+        embed = discord.Embed(description=f"➕ Cleared {count} channels from restore list", color=0x2b2d31)
         await ctx.send(embed=embed)
 
     # ==================== ERROR HANDLERS ====================
@@ -2850,25 +2850,25 @@ class AntiNuke(commands.Cog):
 
         if isinstance(error, commands.CommandOnCooldown):
             embed = discord.Embed(
-                description=f"✕ Cooldown: wait `{error.retry_after:.1f}s`",
+                description=f"✖️ Cooldown: wait `{error.retry_after:.1f}s`",
                 color=0x2b2d31
             )
             await ctx.send(embed=embed, delete_after=5)
         elif isinstance(error, commands.MissingPermissions):
             embed = discord.Embed(
-                description="✕ You don't have permission to use this command",
+                description="✖️ You don't have permission to use this command",
                 color=0x2b2d31
             )
             await ctx.send(embed=embed)
         elif isinstance(error, commands.MemberNotFound):
             embed = discord.Embed(
-                description="✕ Member not found",
+                description="✖️ Member not found",
                 color=0x2b2d31
             )
             await ctx.send(embed=embed)
         elif isinstance(error, commands.BadArgument):
             embed = discord.Embed(
-                description="✕ Invalid argument provided",
+                description="✖️ Invalid argument provided",
                 color=0x2b2d31
             )
             await ctx.send(embed=embed)

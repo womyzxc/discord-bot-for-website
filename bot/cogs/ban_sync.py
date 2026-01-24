@@ -393,7 +393,7 @@ class BanSync(commands.Cog):
         """Create a new ban sync network"""
         # Check if already in a network
         if self.get_guild_network(ctx.guild.id):
-            embed = discord.Embed(description="✕ This server is already in a network. Use `!bansync leave` first", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ This server is already in a network. Use `!bansync leave` first", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Check if user already has a network
@@ -428,21 +428,21 @@ class BanSync(commands.Cog):
     async def bansync_join(self, ctx, owner: discord.User = None):
         """Join a ban sync network by owner ID"""
         if self.get_guild_network(ctx.guild.id):
-            embed = discord.Embed(description="✕ This server is already in a network. Use `!bansync leave` first", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ This server is already in a network. Use `!bansync leave` first", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if not owner:
-            embed = discord.Embed(description="✕ Please specify the network owner: `!bansync join @owner`", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Please specify the network owner: `!bansync join @owner`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         network = self.get_network(owner.id)
         if not network:
-            embed = discord.Embed(description=f"✕ No network found for {owner}. They need to create one first", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ No network found for {owner}. They need to create one first", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         # Only allow the owner or server owner to add servers
         if ctx.author.id != owner.id and ctx.author.id != ctx.guild.owner_id:
-            embed = discord.Embed(description="✕ Only the network owner or server owner can join a network", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Only the network owner or server owner can join a network", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         network.add_guild(ctx.guild.id)
@@ -468,13 +468,13 @@ class BanSync(commands.Cog):
         """Leave the ban sync network"""
         network = self.get_guild_network(ctx.guild.id)
         if not network:
-            embed = discord.Embed(description="✕ This server is not in any network", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ This server is not in any network", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         network.remove_guild(ctx.guild.id)
         del self.guild_network[ctx.guild.id]
 
-        embed = discord.Embed(description="+ Left the ban sync network", color=EMBED_COLOR)
+        embed = discord.Embed(description="➕ Left the ban sync network", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @bansync.command(name='list')
@@ -483,7 +483,7 @@ class BanSync(commands.Cog):
         """List all servers in the network"""
         network = self.get_guild_network(ctx.guild.id)
         if not network:
-            embed = discord.Embed(description="✕ This server is not in any network", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ This server is not in any network", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         server_list = []
@@ -508,7 +508,7 @@ class BanSync(commands.Cog):
         """View the global ban list"""
         network = self.get_guild_network(ctx.guild.id)
         if not network:
-            embed = discord.Embed(description="✕ This server is not in any network", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ This server is not in any network", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         bans = list(network.global_bans.values())
@@ -540,7 +540,7 @@ class BanSync(commands.Cog):
         """Add a user to the global ban list"""
         network = self.get_guild_network(ctx.guild.id)
         if not network:
-            embed = discord.Embed(description="✕ This server is not in any network", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ This server is not in any network", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         record = BanRecord(
@@ -575,15 +575,15 @@ class BanSync(commands.Cog):
         """Remove a user from the global ban list"""
         network = self.get_guild_network(ctx.guild.id)
         if not network:
-            embed = discord.Embed(description="✕ This server is not in any network", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ This server is not in any network", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if not network.is_banned(user.id):
-            embed = discord.Embed(description=f"✕ {user} is not on the global ban list", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ {user} is not on the global ban list", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         network.remove_ban(user.id)
-        embed = discord.Embed(description=f"− Removed {user} from the global ban list", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➖ Removed {user} from the global ban list", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @bansync.command(name='import')
@@ -592,7 +592,7 @@ class BanSync(commands.Cog):
         """Import all current server bans to the global list"""
         network = self.get_guild_network(ctx.guild.id)
         if not network:
-            embed = discord.Embed(description="✕ This server is not in any network", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ This server is not in any network", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         embed = discord.Embed(description="Importing bans...", color=EMBED_COLOR)
@@ -629,7 +629,7 @@ class BanSync(commands.Cog):
         """Configure ban sync settings"""
         network = self.get_guild_network(ctx.guild.id)
         if not network:
-            embed = discord.Embed(description="✕ This server is not in any network", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ This server is not in any network", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if not setting:
@@ -651,18 +651,18 @@ class BanSync(commands.Cog):
 
         valid_settings = ['auto_ban', 'sync_unbans', 'notify_on_ban']
         if setting not in valid_settings:
-            embed = discord.Embed(description=f"✕ Invalid setting. Choose from: `{', '.join(valid_settings)}`", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Invalid setting. Choose from: `{', '.join(valid_settings)}`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         if value not in ['on', 'off', 'true', 'false', '1', '0']:
-            embed = discord.Embed(description="✕ Value must be `on` or `off`", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Value must be `on` or `off`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         new_value = value in ['on', 'true', '1']
         network.settings[setting] = new_value
 
         status = "enabled" if new_value else "disabled"
-        embed = discord.Embed(description=f"+ `{setting}` is now `{status}`", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ `{setting}` is now `{status}`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
 

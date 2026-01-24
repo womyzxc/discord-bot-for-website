@@ -366,9 +366,9 @@ class SecurityLogging(commands.Cog):
         settings['log_channel'] = channel.id if channel else None
 
         if channel:
-            embed = discord.Embed(description=f"+ Log channel set to {channel.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Log channel set to {channel.mention}", color=EMBED_COLOR)
         else:
-            embed = discord.Embed(description="+ Log channel cleared", color=EMBED_COLOR)
+            embed = discord.Embed(description="➕ Log channel cleared", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @logs.command(name='security')
@@ -379,9 +379,9 @@ class SecurityLogging(commands.Cog):
         settings['security_channel'] = channel.id if channel else None
 
         if channel:
-            embed = discord.Embed(description=f"+ Security log channel set to {channel.mention}", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"➕ Security log channel set to {channel.mention}", color=EMBED_COLOR)
         else:
-            embed = discord.Embed(description="+ Security log channel cleared", color=EMBED_COLOR)
+            embed = discord.Embed(description="➕ Security log channel cleared", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @logs.command(name='enable')
@@ -390,7 +390,7 @@ class SecurityLogging(commands.Cog):
         """Enable logging"""
         settings = await self.get_settings(ctx.guild.id)
         settings['enabled'] = True
-        embed = discord.Embed(description="+ Logging enabled", color=EMBED_COLOR)
+        embed = discord.Embed(description="➕ Logging enabled", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @logs.command(name='disable')
@@ -399,7 +399,7 @@ class SecurityLogging(commands.Cog):
         """Disable logging"""
         settings = await self.get_settings(ctx.guild.id)
         settings['enabled'] = False
-        embed = discord.Embed(description="− Logging disabled", color=EMBED_COLOR)
+        embed = discord.Embed(description="➖ Logging disabled", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @logs.command(name='toggle')
@@ -420,7 +420,7 @@ class SecurityLogging(commands.Cog):
         }
 
         if event.lower() not in event_map:
-            embed = discord.Embed(description=f"✕ Unknown event. Choose from: `{', '.join(event_map.keys())}`", color=EMBED_COLOR)
+            embed = discord.Embed(description=f"✖️ Unknown event. Choose from: `{', '.join(event_map.keys())}`", color=EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
@@ -428,7 +428,7 @@ class SecurityLogging(commands.Cog):
         settings[key] = not settings[key]
 
         status = "enabled" if settings[key] else "disabled"
-        embed = discord.Embed(description=f"+ {event.title()} logging is now `{status}`", color=EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ {event.title()} logging is now `{status}`", color=EMBED_COLOR)
         await ctx.send(embed=embed)
 
 async def setup(bot):

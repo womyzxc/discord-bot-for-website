@@ -834,7 +834,7 @@ class AdvancedSecurity(commands.Cog):
             await ctx.send(embed=embed)
 
         else:
-            embed = discord.Embed(description="✕ Invalid type. Use `channel` or `role`", color=EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Invalid type. Use `channel` or `role`", color=EMBED_COLOR)
             await ctx.send(embed=embed)
 
     @honeypot_cmd.command(name='list')

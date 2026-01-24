@@ -614,7 +614,7 @@ class AdvancedDetection(commands.Cog):
         """Enable advanced detection"""
         settings = await self.get_settings(ctx.guild.id)
         settings['enabled'] = True
-        embed = discord.Embed(description="+ Enabled advanced detection", color=self.EMBED_COLOR)
+        embed = discord.Embed(description="➕ Enabled advanced detection", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @detection.command(name='disable')
@@ -623,7 +623,7 @@ class AdvancedDetection(commands.Cog):
         """Disable advanced detection"""
         settings = await self.get_settings(ctx.guild.id)
         settings['enabled'] = False
-        embed = discord.Embed(description="− Disabled advanced detection", color=self.EMBED_COLOR)
+        embed = discord.Embed(description="➖ Disabled advanced detection", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @detection.command(name='sensitivity')
@@ -631,12 +631,12 @@ class AdvancedDetection(commands.Cog):
     async def detection_sensitivity(self, ctx, level: str):
         """Set detection sensitivity (low/medium/high)"""
         if level.lower() not in ['low', 'medium', 'high']:
-            embed = discord.Embed(description="✕ Invalid level. Use: `low`, `medium`, `high`", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="✖️ Invalid level. Use: `low`, `medium`, `high`", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         settings = await self.get_settings(ctx.guild.id)
         settings['sensitivity'] = level.lower()
-        embed = discord.Embed(description=f"+ Set sensitivity to `{level.lower()}`", color=self.EMBED_COLOR)
+        embed = discord.Embed(description=f"➕ Set sensitivity to `{level.lower()}`", color=self.EMBED_COLOR)
         await ctx.send(embed=embed)
 
     @detection.command(name='test')
@@ -646,7 +646,7 @@ class AdvancedDetection(commands.Cog):
         detections = await self.scan_content(content, ctx.guild.id)
 
         if not detections:
-            embed = discord.Embed(description="+ No threats detected", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="➕ No threats detected", color=self.EMBED_COLOR)
             return await ctx.send(embed=embed)
 
         detection_list = []
@@ -685,7 +685,7 @@ class AdvancedDetection(commands.Cog):
         detections = await self.scan_content(content, interaction.guild.id)
 
         if not detections:
-            embed = discord.Embed(description="+ No threats detected", color=self.EMBED_COLOR)
+            embed = discord.Embed(description="➕ No threats detected", color=self.EMBED_COLOR)
             return await interaction.response.send_message(embed=embed, ephemeral=True)
 
         detection_list = []
