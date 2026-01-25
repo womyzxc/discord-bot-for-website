@@ -9,7 +9,7 @@ from discord import app_commands
 from typing import Optional
 import logging
 
-logger = logging.getLogger('Offcialx.Help')
+logger = logging.getLogger('CruniX.Help')
 
 EMBED_COLOR = 0x2b2d31
 
@@ -24,7 +24,7 @@ class Help(commands.Cog):
     def get_main_embed(self) -> discord.Embed:
         embed = discord.Embed(color=EMBED_COLOR)
         embed.description = (
-            "**Offcialx Security Bot**\n\n"
+            "**CruniX Security Bot**\n\n"
             "All commands work with `/command` or `!command`\n\n"
             "**Categories**\n"
             "› `/help antinuke` − Anti-nuke protection\n"
